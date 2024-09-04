@@ -1,0 +1,28 @@
+name: Promote Charm
+
+on:
+  workflow_dispatch:
+    inputs:
+      promotion:
+        type: choice
+        description: Channel to promote from
+        options:
+          - edge -> beta
+          - beta -> candidate
+          - candidate -> stable
+      track-name:
+        type: choice
+        description: Name of the charmhub track to publish
+        options:
+          - '2.1'
+          - latest
+
+
+jobs:
+  promote:
+    name: Promote Charm
+    uses: canonical/sdcore-github-workflows/.github/workflows/promote.yaml@v1.0.0
+    with:
+      promotion: ${{ github.event.inputs.promotion }}
+      track-name: ${{ github.event.inputs.track-name }}
+    secrets: inherit
