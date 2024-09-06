@@ -5,7 +5,7 @@
 from unittest.mock import patch
 
 import pytest
-import scenario  # type: ignore[import-untyped]
+import scenario
 
 from charm import OaiRanUeK8SOperatorCharm
 
