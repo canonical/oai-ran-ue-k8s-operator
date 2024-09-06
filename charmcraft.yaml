@@ -1,0 +1,74 @@
+type: charm
+name: oai-ran-ue-k8s
+summary: Charmed Operator for the OAI RAN User Equipment (UE).
+description: Charmed Operator for the OAI RAN User Equipment (UE).
+bases:
+  - build-on:
+      - name: ubuntu
+        channel: "22.04"
+    run-on:
+      - name: ubuntu
+        channel: "22.04"
+links:
+  website:
+    - https://charmhub.io/oai-ran-ue-k8s
+  source:
+    - https://github.com/canonical/oai-ran-ue-k8s-operator
+  issues:
+    - https://github.com/canonical/oai-ran-ue-k8s-operator/issues
+
+containers:
+  ue:
+    resource: ue-image
+    mounts:
+      - storage: config
+        location: /tmp/conf/
+
+storage:
+  config:
+    type: filesystem
+    minimum-size: 1M
+
+resources:
+  ue-image:
+    type: oci-image
+    description: Container image for the OAI RAN User Equipment (UE).
+    upstream-source: ghcr.io/canonical/oai-ran-ue:2.1.1
+
+requires:
+  fiveg_rfsim:
+    interface: fiveg_rfsim
+  logging:
+    interface: loki_push_api
+
+config:
+  options:
+    imsi:
+      type: string
+      default: "208930100007487"
+      description: IMSI identifying this UE.
+    key:
+      type: string
+      default: "5122250214c33e723a5dd523fc145fc0"
+      description: Secret Key for USIM
+    opc:
+      type: string
+      default: "981d464c7c52eb6e5036234984ad0bcfdf"
+      description: Secret Key for operator
+    dnn:
+      type: string
+      default: "internet"
+      description: Data Network Name
+    sst:
+      type: int
+      default: 1
+      description: Slice Service Type
+
+parts:
+  charm:
+    build-packages:
+      - cargo
+      - libffi-dev
+      - libssl-dev
+      - pkg-config
+      - rustc
