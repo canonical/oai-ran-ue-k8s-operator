@@ -12,10 +12,12 @@ from charm import OaiRanUeK8SOperatorCharm
 
 class UEFixtures:
     patcher_check_output = patch("charm.check_output")
+    patcher_k8s_privileged = patch("charm.K8sPrivileged")
 
     @pytest.fixture(autouse=True)
     def setUp(self, request):
         self.mock_check_output = UEFixtures.patcher_check_output.start()
+        self.mock_k8s_privileged = UEFixtures.patcher_k8s_privileged.start().return_value
         yield
         request.addfinalizer(self.tearDown)
 

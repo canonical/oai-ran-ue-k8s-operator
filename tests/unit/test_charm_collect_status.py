@@ -76,6 +76,25 @@ class TestCharmCollectStatus(UEFixtures):
 
         assert state_out.unit_status == WaitingStatus("Waiting for Pod IP address to be available")
 
+    def test_given_charm_statefulset_is_not_patched_when_collect_unit_status_then_status_is_waiting(  # noqa: E501
+        self,
+    ):
+        self.mock_k8s_privileged.is_patched.return_value = False
+        self.mock_check_output.return_value = b"1.2.3.4"
+        container = scenario.Container(
+            name="ue",
+            can_connect=True,
+        )
+        state_in = scenario.State(
+            leader=True,
+            relations=[],
+            containers=[container],
+        )
+
+        state_out = self.ctx.run("collect_unit_status", state_in)
+
+        assert state_out.unit_status == WaitingStatus("Waiting for statefulset to be patched")
+
     def test_given_config_file_doesnt_exist_when_collect_status_then_status_is_waiting(self):
         self.mock_check_output.return_value = b"1.2.3.4"
         container = scenario.Container(
