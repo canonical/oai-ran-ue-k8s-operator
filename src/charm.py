@@ -23,6 +23,7 @@ from ops.main import main
 from ops.pebble import Layer
 
 from charm_config import CharmConfig, CharmConfigInvalidError
+from k8s_privileged import K8sPrivileged
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +44,9 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
         self._container_name = self._service_name = "ue"
         self._container = self.unit.get_container(self._container_name)
         self._logging = LogForwarder(charm=self, relation_name=LOGGING_RELATION_NAME)
+        self._k8s_privileged = K8sPrivileged(
+            namespace=self.model.name, statefulset_name=self.app.name
+        )
 
         try:
             self._charm_config: CharmConfig = CharmConfig.from_charm(charm=self)
@@ -82,6 +86,10 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
             event.add_status(WaitingStatus("Waiting for Pod IP address to be available"))
             logger.info("Waiting for Pod IP address to be available")
             return
+        if not self._k8s_privileged.is_patched(container_name=self._container_name):
+            event.add_status(WaitingStatus("Waiting for statefulset to be patched"))
+            logger.info("Waiting for statefulset to be patched")
+            return
         self.unit.set_workload_version(self._get_workload_version())
         if not self._container.exists(path=BASE_CONFIG_PATH):
             event.add_status(WaitingStatus("Waiting for storage to be attached"))
@@ -100,6 +108,8 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
             return
         if not _get_pod_ip():
             return
+        if not self._k8s_privileged.is_patched(container_name=self._container_name):
+            self._k8s_privileged.patch_statefulset(container_name=self._container_name)
         if not self._container.exists(path=BASE_CONFIG_PATH):
             return
 

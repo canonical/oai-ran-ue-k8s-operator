@@ -13,6 +13,31 @@ from tests.unit.fixtures import UEFixtures
 
 
 class TestCharmConfigure(UEFixtures):
+    def test_given_statefulset_is_not_patched_when_config_changed_then_statefulset_is_patched(
+        self,
+    ):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            self.mock_k8s_privileged.is_patched.return_value = False
+            self.mock_check_output.return_value = b"1.2.3.4"
+            config_mount = scenario.Mount(
+                location="/tmp/conf",
+                src=tmpdir,
+            )
+            container = scenario.Container(
+                name="ue",
+                mounts={"config": config_mount},
+                can_connect=True,
+            )
+            state_in = scenario.State(
+                leader=True,
+                containers=[container],
+                relations=[],
+            )
+
+            self.ctx.run("config_changed", state_in)
+
+            self.mock_k8s_privileged.patch_statefulset.assert_called_with(container_name="ue")
+
     def test_given_workload_is_ready_to_be_configured_when_configure_then_ue_config_file_is_generated_and_pushed_to_the_workload_container(  # noqa: E501
         self,
     ):
