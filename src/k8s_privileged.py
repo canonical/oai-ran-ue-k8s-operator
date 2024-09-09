@@ -66,6 +66,8 @@ class K8sPrivileged:
             raise K8sPrivilegedError(f"Could not get statefulset {self.statefulset_name}")
         except StopIteration:
             raise K8sPrivilegedError(f"Could not get container {container_name}")
+        except AttributeError:
+            return False
         return True
 
     def patch_statefulset(self, container_name: str) -> None:
