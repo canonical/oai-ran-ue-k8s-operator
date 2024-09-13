@@ -47,7 +47,7 @@ class TestCharmConfigure(UEFixtures):
                 endpoint="fiveg_rfsim",
                 interface="fiveg_rfsim",
                 remote_app_data={
-                    "rfsim_address": "1.1.1.1:4043",
+                    "rfsim_address": "1.1.1.1",
                 },
             )
             config_mount = scenario.Mount(
@@ -119,7 +119,7 @@ class TestCharmConfigure(UEFixtures):
                 endpoint="fiveg_rfsim",
                 interface="fiveg_rfsim",
                 remote_app_data={
-                    "rfsim_address": "1.1.1.1:4043",
+                    "rfsim_address": "1.1.1.1",
                 },
             )
             config_mount = scenario.Mount(
@@ -149,7 +149,7 @@ class TestCharmConfigure(UEFixtures):
                             "ue": {
                                 "startup": "enabled",
                                 "override": "replace",
-                                "command": "/opt/oai-gnb/bin/nr-uesoftmodem -O /tmp/conf/ue.conf --sa --rfsim -r 106 --numerology 1 -C 3619200000 --ssb 516 -E --log_config.global_log_options level,nocolor,time --rfsimulator.serveraddr 1111",  # noqa: E501
+                                "command": "/opt/oai-gnb/bin/nr-uesoftmodem -O /tmp/conf/ue.conf --sa --rfsim -r 106 --numerology 1 -C 3619200000 --ssb 516 -E --log_config.global_log_options level,nocolor,time --rfsimulator.serveraddr 1.1.1.1",  # noqa: E501
                                 "environment": {"TZ": "UTC"},
                             }
                         }

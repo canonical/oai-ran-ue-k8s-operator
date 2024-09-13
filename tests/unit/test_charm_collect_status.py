@@ -164,7 +164,7 @@ class TestCharmCollectStatus(UEFixtures):
             endpoint="fiveg_rfsim",
             interface="fiveg_rfsim",
             remote_app_data={
-                "rfsim_address": "1.1.1.1:4043",
+                "rfsim_address": "1.1.1.1",
             },
         )
         container = scenario.Container(
@@ -188,7 +188,7 @@ class TestCharmCollectStatus(UEFixtures):
                 endpoint="fiveg_rfsim",
                 interface="fiveg_rfsim",
                 remote_app_data={
-                    "rfsim_address": "1.1.1.1:4043",
+                    "rfsim_address": "1.1.1.1",
                 },
             )
             config_mount = scenario.Mount(

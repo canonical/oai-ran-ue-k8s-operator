@@ -35,7 +35,7 @@ from charms.oai_ran_du_k8s.v0.fiveg_rfsim import RFSIMProvides
 
 class DummyFivegRFSIMProviderCharm(CharmBase):
 
-    RFSIM_ADDRESS = "192.168.70.130:4043"
+    RFSIM_ADDRESS = "192.168.70.130"
 
     def __init__(self, *args):
         super().__init__(*args)
@@ -47,7 +47,7 @@ class DummyFivegRFSIMProviderCharm(CharmBase):
     def _on_fiveg_rfsim_relation_joined(self, event: RelationJoinedEvent):
         if self.unit.is_leader():
             self.rfsim_provider.set_rfsim_information(
-                rfsim_address=self.RFSIM_ADDRESS,
+                rfsim_address=self.RFSIM_ADDRESS
             )
 
 
@@ -109,7 +109,7 @@ LIBAPI = 0
 
 # Increment this PATCH version before using `charmcraft publish-lib` or reset
 # to 0 if you are raising the major API version
-LIBPATCH = 1
+LIBPATCH = 2
 
 
 logger = logging.getLogger(__name__)
@@ -119,8 +119,8 @@ class FivegRFSIMProviderAppData(BaseModel):
     """Provider app data for fiveg_rfsim."""
 
     rfsim_address: str = Field(
-        description="RF simulator service address of DU including DU pod ip and port",
-        examples=["192.168.70.130:4043"],
+        description="RF simulator service address which is equal to DU pod ip",
+        examples=["192.168.70.130"],
     )
 
 
@@ -196,7 +196,7 @@ class RFSIMProvides(Object):
         """Push the information about the RFSIM interface in the application relation data.
 
         Args:
-            rfsim_address (str): rfsim service address including the pod ip and port number.
+            rfsim_address (str): rfsim service address which is equal to DU pod ip.
         """
         if not self.charm.unit.is_leader():
             raise FivegRFSIMError("Unit must be leader to set application relation data.")
@@ -241,7 +241,7 @@ class RFSIMRequires(Object):
         """Return address of the RFSIM.
 
         Returns:
-            str: rfsim address including pod ip and port number.
+            str: rfsim address which is equal to DU pod ip.
         """
         if remote_app_relation_data := self._get_remote_app_relation_data():
             return remote_app_relation_data.get("rfsim_address")
