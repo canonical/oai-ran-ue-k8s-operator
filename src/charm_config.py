@@ -43,9 +43,17 @@ class UEConfig(BaseModel):  # pylint: disable=too-few-public-methods
 
         alias_generator = to_kebab
 
-    imsi: StrictStr = Field(default="208930100007487", min_length=10)
-    key: StrictStr = Field(default="5122250214c33e723a5dd523fc145fc0", min_length=1)
-    opc: StrictStr = Field(default="981d464c7c52eb6e5036234984ad0bcfdf", min_length=1)
+    imsi: StrictStr = Field(default="208930100007487", max_length=15, min_length=14)
+    key: StrictStr = Field(
+        default="5122250214c33e723a5dd523fc145fc0",
+        max_length=32,
+        min_length=32,
+    )
+    opc: StrictStr = Field(
+        default="981d464c7c52eb6e5036234984ad0bcf",
+        max_length=32,
+        min_length=32,
+    )
     dnn: StrictStr = Field(default="internet", min_length=1)
     sst: int = Field(ge=1, le=4)
 

@@ -53,7 +53,7 @@ config:
       description: Secret Key for USIM
     opc:
       type: string
-      default: "981d464c7c52eb6e5036234984ad0bcfdf"
+      default: "981d464c7c52eb6e5036234984ad0bcf"
       description: Secret Key for operator
     dnn:
       type: string
