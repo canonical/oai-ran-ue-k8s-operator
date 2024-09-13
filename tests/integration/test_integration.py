@@ -73,7 +73,7 @@ async def test_restore_du_and_wait_for_active_status(
 ):
     assert ops_test.model
     await _deploy_du(ops_test)
-    await ops_test.model.integrate(relation1=APP_NAME, relation2=DB_CHARM_NAME)
+    await ops_test.model.integrate(relation1=APP_NAME, relation2=DU_CHARM_NAME)
     await ops_test.model.wait_for_idle(apps=[APP_NAME], status="active", timeout=TIMEOUT)
 
 
