@@ -1,4 +1,7 @@
-cosl
 jinja2
 ops
+lightkube
+lightkube-models
 pydantic
+pytest-interface-tester
+cosl
