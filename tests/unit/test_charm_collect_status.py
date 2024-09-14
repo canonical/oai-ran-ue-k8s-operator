@@ -51,6 +51,63 @@ class TestCharmCollectStatus(UEFixtures):
             f"The following configurations are not valid: ['{config_param}']"
         )
 
+    def test_given_fiveg_rfsim_relation_not_created_when_collect_unit_status_then_status_is_blocked(  # noqa: E501
+        self,
+    ):  # noqa: E501
+        with tempfile.TemporaryDirectory() as temp_dir:
+            self.mock_k8s_privileged.is_patched.return_value = True
+            self.mock_check_output.return_value = b"1.1.1.1"
+            config_mount = scenario.Mount(
+                src=temp_dir,
+                location="/tmp/conf",
+            )
+            container = scenario.Container(
+                name="ue",
+                can_connect=True,
+                mounts={"config": config_mount},
+            )
+            state_in = scenario.State(
+                leader=True,
+                relations=[],
+                containers=[container],
+            )
+
+            state_out = self.ctx.run("collect_unit_status", state_in)
+
+            assert state_out.unit_status == BlockedStatus(
+                "Waiting for fiveg_rfsim relation to be created"
+            )
+
+    def test_given_fiveg_rfsim_relation_created_but_rfsim_address_is_not_available_when_collect_unit_status_then_status_is_waiting(  # noqa: E501
+        self,
+    ):  # noqa: E501
+        with tempfile.TemporaryDirectory() as temp_dir:
+            self.mock_k8s_privileged.is_patched.return_value = True
+            self.mock_check_output.return_value = b"1.1.1.1"
+            rfsim_relation = scenario.Relation(
+                endpoint="fiveg_rfsim",
+                interface="fiveg_rfsim",
+                remote_app_data={},
+            )
+            config_mount = scenario.Mount(
+                src=temp_dir,
+                location="/tmp/conf",
+            )
+            container = scenario.Container(
+                name="ue",
+                can_connect=True,
+                mounts={"config": config_mount},
+            )
+            state_in = scenario.State(
+                leader=True,
+                relations=[rfsim_relation],
+                containers=[container],
+            )
+
+            state_out = self.ctx.run("collect_unit_status", state_in)
+
+            assert state_out.unit_status == WaitingStatus("Waiting for RFSIM information")
+
     def test_given_cant_connect_to_container_when_collect_status_then_status_is_waiting(self):
         container = scenario.Container(
             name="ue",
@@ -103,13 +160,20 @@ class TestCharmCollectStatus(UEFixtures):
 
     def test_given_config_file_doesnt_exist_when_collect_status_then_status_is_waiting(self):
         self.mock_check_output.return_value = b"1.2.3.4"
+        rfsim_relation = scenario.Relation(
+            endpoint="fiveg_rfsim",
+            interface="fiveg_rfsim",
+            remote_app_data={
+                "rfsim_address": "1.1.1.1",
+            },
+        )
         container = scenario.Container(
             name="ue",
             can_connect=True,
         )
         state_in = scenario.State(
             leader=True,
-            relations=[],
+            relations=[rfsim_relation],
             containers=[container],
         )
 
@@ -120,6 +184,13 @@ class TestCharmCollectStatus(UEFixtures):
     def test_given_all_prerequisites_met_when_collect_status_then_status_is_active(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             self.mock_check_output.return_value = b"1.2.3.4"
+            rfsim_relation = scenario.Relation(
+                endpoint="fiveg_rfsim",
+                interface="fiveg_rfsim",
+                remote_app_data={
+                    "rfsim_address": "1.1.1.1",
+                },
+            )
             config_mount = scenario.Mount(
                 src=temp_dir,
                 location="/tmp/conf",
@@ -133,7 +204,7 @@ class TestCharmCollectStatus(UEFixtures):
             )
             state_in = scenario.State(
                 leader=True,
-                relations=[],
+                relations=[rfsim_relation],
                 containers=[container],
             )
 

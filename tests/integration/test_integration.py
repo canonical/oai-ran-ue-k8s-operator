@@ -29,11 +29,14 @@ TIMEOUT = 5 * 60
 
 
 @pytest.mark.abort_on_fail
-async def test_deploy_charm_and_wait_for_active_status(ops_test: OpsTest, deploy_charm_under_test):
+async def test_deploy_charm_and_wait_for_blocked_status(
+    ops_test: OpsTest,
+    deploy_charm_under_test,
+):
     assert ops_test.model
     await ops_test.model.wait_for_idle(
         apps=[APP_NAME],
-        status="active",
+        status="blocked",
         timeout=TIMEOUT,
     )
 
@@ -43,6 +46,7 @@ async def test_relate_and_wait_for_active_status(
     ops_test: OpsTest, deploy_charm_under_test, deploy_dependencies
 ):
     assert ops_test.model
+    await ops_test.model.integrate(relation1=f"{APP_NAME}:fiveg_rfsim", relation2=DU_CHARM_NAME)
     await ops_test.model.integrate(
         relation1=f"{APP_NAME}:logging", relation2=GRAFANA_AGENT_CHARM_NAME
     )
@@ -52,6 +56,25 @@ async def test_relate_and_wait_for_active_status(
         status="active",
         timeout=TIMEOUT,
     )
+
+
+@pytest.mark.abort_on_fail
+async def test_remove_du_and_wait_for_blocked_status(
+    ops_test: OpsTest, deploy_charm_under_test, deploy_dependencies
+):
+    assert ops_test.model
+    await ops_test.model.remove_application(DU_CHARM_NAME, block_until_done=True)
+    await ops_test.model.wait_for_idle(apps=[APP_NAME], status="blocked", timeout=TIMEOUT)
+
+
+@pytest.mark.abort_on_fail
+async def test_restore_du_and_wait_for_active_status(
+    ops_test: OpsTest, deploy_charm_under_test, deploy_dependencies
+):
+    assert ops_test.model
+    await _deploy_du(ops_test)
+    await ops_test.model.integrate(relation1=APP_NAME, relation2=DU_CHARM_NAME)
+    await ops_test.model.wait_for_idle(apps=[APP_NAME], status="active", timeout=TIMEOUT)
 
 
 @pytest.fixture(scope="module")

@@ -10,6 +10,7 @@ from subprocess import check_output
 from typing import Optional
 
 from charms.loki_k8s.v1.loki_push_api import LogForwarder
+from charms.oai_ran_du_k8s.v0.fiveg_rfsim import RFSIMRequires
 from jinja2 import Environment, FileSystemLoader
 from ops import (
     ActiveStatus,
@@ -30,6 +31,7 @@ logger = logging.getLogger(__name__)
 BASE_CONFIG_PATH = "/tmp/conf"
 CONFIG_FILE_NAME = "ue.conf"
 LOGGING_RELATION_NAME = "logging"
+RFSIM_RELATION_NAME = "fiveg_rfsim"
 WORKLOAD_VERSION_FILE_NAME = "/etc/workload-version"
 
 
@@ -44,6 +46,7 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
         self._container_name = self._service_name = "ue"
         self._container = self.unit.get_container(self._container_name)
         self._logging = LogForwarder(charm=self, relation_name=LOGGING_RELATION_NAME)
+        self.rfsim_requirer = RFSIMRequires(self, RFSIM_RELATION_NAME)
         self._k8s_privileged = K8sPrivileged(
             namespace=self.model.name, statefulset_name=self.app.name
         )
@@ -56,6 +59,9 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
         self.framework.observe(self.on.update_status, self._configure)
         self.framework.observe(self.on.config_changed, self._configure)
         self.framework.observe(self.on.ue_pebble_ready, self._configure)
+        self.framework.observe(
+            self.rfsim_requirer.on.fiveg_rfsim_provider_available, self._configure
+        )
 
     def _on_collect_unit_status(self, event: CollectStatusEvent):
         """Check the unit status and set to Unit when CollectStatusEvent is fired.
@@ -90,6 +96,14 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
             event.add_status(WaitingStatus("Waiting for statefulset to be patched"))
             logger.info("Waiting for statefulset to be patched")
             return
+        if not self._relation_created(RFSIM_RELATION_NAME):
+            event.add_status(BlockedStatus("Waiting for fiveg_rfsim relation to be created"))
+            logger.info("Waiting for fiveg_rfsim relation to be created")
+            return
+        if not self.rfsim_requirer.rfsim_address:
+            event.add_status(WaitingStatus("Waiting for RFSIM information"))
+            logger.info("Waiting for RFSIM information")
+            return
         self.unit.set_workload_version(self._get_workload_version())
         if not self._container.exists(path=BASE_CONFIG_PATH):
             event.add_status(WaitingStatus("Waiting for storage to be attached"))
@@ -111,6 +125,10 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
         if not self._k8s_privileged.is_patched(container_name=self._container_name):
             self._k8s_privileged.patch_statefulset(container_name=self._container_name)
         if not self._container.exists(path=BASE_CONFIG_PATH):
+            return
+        if not self._relation_created(RFSIM_RELATION_NAME):
+            return
+        if not self.rfsim_requirer.rfsim_address:
             return
 
         ue_config = self._generate_ue_config()
@@ -139,6 +157,17 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
         if not self._config_file_content_matches(content=content):
             return True
         return False
+
+    def _relation_created(self, relation_name: str) -> bool:
+        """Return whether a given Juju relation was created.
+
+        Args:
+            relation_name (str): Relation name
+
+        Returns:
+            bool: Whether the relation was created.
+        """
+        return bool(self.model.relations.get(relation_name))
 
     def _config_file_content_matches(self, content: str) -> bool:
         if not self._container.exists(path=f"{BASE_CONFIG_PATH}/{CONFIG_FILE_NAME}"):
@@ -210,7 +239,7 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
                 "--log_config.global_log_options",
                 "level,nocolor,time",
                 "--rfsimulator.serveraddr",
-                self._du_address,
+                self.rfsim_requirer.rfsim_address if self.rfsim_requirer.rfsim_address else "",
             ]
         )
 
@@ -219,19 +248,6 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
         return {
             "TZ": "UTC",
         }
-
-    @property
-    def _du_address(self) -> str:
-        """Return the DU address to connect to in simulation mode.
-
-        TODO: This is currently hardcoded and the application name of
-        the DU will need to match. This is expected to be replaced
-        with an integration in the future.
-
-        Returns:
-            string: The address of the DU service
-        """
-        return "du"
 
     def _get_workload_version(self) -> str:
         """Return the workload version.
