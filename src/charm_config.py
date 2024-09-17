@@ -87,7 +87,7 @@ class CharmConfig:
     opc: StrictStr
     dnn: StrictStr
     sst: int
-    sd: StrictStr
+    sd: int
 
     def __init__(self, *, ue_config: UEConfig):
         """Initialize a new instance of the CharmConfig class.

@@ -273,7 +273,7 @@ def _render_config_file(
     opc: str,
     dnn: str,
     sst: int,
-    sd: str,
+    sd: int,
 ) -> str:
     """Render UE config file based on parameters.
 
