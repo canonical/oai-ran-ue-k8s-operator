@@ -143,6 +143,7 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
             opc=self._charm_config.opc,
             dnn=self._charm_config.dnn,
             sst=self._charm_config.sst,
+            sd=self._charm_config.sd,
         ).rstrip()
 
     def _is_ue_config_up_to_date(self, content: str) -> bool:
@@ -272,6 +273,7 @@ def _render_config_file(
     opc: str,
     dnn: str,
     sst: int,
+    sd: str,
 ) -> str:
     """Render UE config file based on parameters.
 
@@ -281,6 +283,7 @@ def _render_config_file(
         opc: Secret Key for operator
         dnn: Data Network Name
         sst: Slice Service Type
+        sd: Slice Differentiator
 
     Returns:
         str: Rendered UE configuration file
@@ -293,6 +296,7 @@ def _render_config_file(
         opc=opc,
         dnn=dnn,
         sst=sst,
+        sd=sd,
     )
 
 

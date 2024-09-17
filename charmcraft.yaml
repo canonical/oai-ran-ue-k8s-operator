@@ -45,7 +45,7 @@ config:
   options:
     imsi:
       type: string
-      default: "208930100007487"
+      default: "001010100007487"
       description: IMSI identifying this UE.
     key:
       type: string
@@ -63,6 +63,10 @@ config:
       type: int
       default: 1
       description: Slice Service Type
+    sd:
+      type: string
+      default: "010203"
+      description: Slice Differentiator
 
 parts:
   charm:

@@ -35,6 +35,7 @@ class TestCharmCollectStatus(UEFixtures):
             pytest.param("opc", "123abc123abc123abc123abc123abc123abc123abc", id="too_long_opc"),
             pytest.param("dnn", "", id="empty_dnn"),
             pytest.param("sst", int(), id="empty_sst"),
+            pytest.param("sd", "", id="empty_sd"),
         ],
     )
     def test_given_invalid_config_when_collect_status_then_status_is_blocked(
