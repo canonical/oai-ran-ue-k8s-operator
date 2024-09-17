@@ -56,6 +56,7 @@ class UEConfig(BaseModel):  # pylint: disable=too-few-public-methods
     )
     dnn: StrictStr = Field(default="internet", min_length=1)
     sst: int = Field(ge=1, le=4)
+    sd: StrictStr = Field(default="010203", min_length=1)
 
 
 @dataclasses.dataclass
@@ -68,6 +69,7 @@ class CharmConfig:
         opc: Secret Key for operator
         dnn: Data Network Name
         sst: Slice Service Type
+        sd: Slice Differentiator
     """
 
     imsi: StrictStr
@@ -75,6 +77,7 @@ class CharmConfig:
     opc: StrictStr
     dnn: StrictStr
     sst: int
+    sd: StrictStr
 
     def __init__(self, *, ue_config: UEConfig):
         """Initialize a new instance of the CharmConfig class.
@@ -87,6 +90,7 @@ class CharmConfig:
         self.opc = ue_config.opc
         self.dnn = ue_config.dnn
         self.sst = ue_config.sst
+        self.sd = ue_config.sd
 
     @classmethod
     def from_charm(
