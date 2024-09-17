@@ -19,8 +19,8 @@ sudo microk8s enable multus
 Deploy the charm.
 
 ```bash
-juju deploy oai-ran-du-k8s --trust --channel=2.1/edge
-juju deploy oai-ran-cu-k8s --trust --channel=2.1/edge
+juju deploy oai-ran-cu-k8s --trust --channel=2.1/edge 
+juju deploy oai-ran-du-k8s --trust --channel=2.1/edge --config simulation-mode=true
 juju deploy oai-ran-ue-k8s --trust --channel=2.1/edge
 juju integrate oai-ran-du-k8s:fiveg_f1 oai-ran-cu-k8s:fiveg_f1
 juju integrate oai-ran-du-k8s:fiveg_rfsim oai-ran-ue-k8s:fiveg_rfsim
