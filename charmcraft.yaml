@@ -64,11 +64,11 @@ config:
       default: 1
       description: Slice Service Type
     sd:
-      type: int
-      default: 102030
+      type: string
+      default: "0x102030"
       description: |
         Slice Differentiator
-        It needs to be an integer between 0 and 16777215 with even number of digits.
+        It needs to be a number between 0 and 16777215 or its hex representation. Hex value needs to be prefixed with `0x`.
 
 parts:
   charm:
