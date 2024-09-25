@@ -58,13 +58,14 @@ class UEConfig(BaseModel):  # pylint: disable=too-few-public-methods
     )
     dnn: StrictStr = Field(default="internet", min_length=1)
     sst: int = Field(ge=1, le=4)
-    sd: int = Field(default=102030, ge=0, le=16777215)
+    sd: StrictStr = Field(default="0x102030")
 
     @field_validator("sd", mode="before")
     @classmethod
     def validate_sd(cls, value: str, info: ValidationInfo) -> str:
-        """Make sure Slice Differentiator has an even number of digits."""
-        if not len(str(value)) % 2 == 0:
+        """Make sure Slice Differentiator is valid."""
+        sd_int = int(value, 0)
+        if not 0 <= sd_int <= 16777215:
             raise ValueError()
         return value
 
@@ -87,7 +88,7 @@ class CharmConfig:
     opc: StrictStr
     dnn: StrictStr
     sst: int
-    sd: int
+    sd: StrictStr
 
     def __init__(self, *, ue_config: UEConfig):
         """Initialize a new instance of the CharmConfig class.
