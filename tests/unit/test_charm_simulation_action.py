@@ -6,6 +6,7 @@ import tempfile
 
 import scenario
 from ops.pebble import Layer, ServiceStatus
+
 from tests.unit.fixtures import UEFixtures
 
 
