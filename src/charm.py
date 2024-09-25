@@ -7,7 +7,7 @@
 import logging
 from ipaddress import IPv4Address
 from subprocess import check_output
-from typing import Optional
+from typing import Optional, Tuple
 
 from charms.loki_k8s.v1.loki_push_api import LogForwarder
 from charms.oai_ran_du_k8s.v0.fiveg_rfsim import RFSIMRequires
@@ -19,9 +19,9 @@ from ops import (
     Framework,
     WaitingStatus,
 )
-from ops.charm import CharmBase
+from ops.charm import ActionEvent, CharmBase
 from ops.main import main
-from ops.pebble import Layer
+from ops.pebble import ExecError, Layer
 
 from charm_config import CharmConfig, CharmConfigInvalidError
 from k8s_privileged import K8sPrivileged
@@ -62,6 +62,7 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
         self.framework.observe(
             self.rfsim_requirer.on.fiveg_rfsim_provider_available, self._configure
         )
+        self.framework.observe(self.on.start_simulation_action, self._on_start_simulation_action)
 
     def _on_collect_unit_status(self, event: CollectStatusEvent):
         """Check the unit status and set to Unit when CollectStatusEvent is fired.
@@ -135,6 +136,27 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
         if service_restart_required := self._is_ue_config_up_to_date(ue_config):
             self._write_config_file(content=ue_config)
         self._configure_pebble(restart=service_restart_required)
+
+    def _on_start_simulation_action(self, event: ActionEvent) -> None:
+        """Run network traffic simulation.
+
+        The action tries to ping `8.8.8.8` using the UE interface (oaitun_ue1). Working ping
+        guarantees correctness of the deployment.
+        To avoid deadlocks we're sending only 10 packets.
+        """
+        if not self._container.can_connect():
+            event.fail(message="Container is not ready")
+            return
+        try:
+            stdout, _ = self._exec_command_in_workload(command="ping -I oaitun_ue1 8.8.8.8 -c 10")
+            event.set_results(
+                {
+                    "success": "true",
+                    "result": stdout,
+                }
+            )
+        except ExecError as e:
+            event.fail(message=f"Failed to execute simulation: {str(e.stdout)}")
 
     def _generate_ue_config(self) -> str:
         return _render_config_file(
@@ -243,6 +265,18 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
                 self.rfsim_requirer.rfsim_address if self.rfsim_requirer.rfsim_address else "",
             ]
         )
+
+    def _exec_command_in_workload(self, command: str) -> Tuple[Optional[str], Optional[str]]:
+        """Execute command in workload container.
+
+        Args:
+            command: Command to execute
+        """
+        process = self._container.exec(
+            command=command.split(),
+            timeout=300,
+        )
+        return process.wait_output()
 
     @property
     def _ue_environment_variables(self) -> dict:
