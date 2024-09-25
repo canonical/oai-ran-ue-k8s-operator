@@ -21,6 +21,7 @@ from ops import (
 )
 from ops.charm import ActionEvent, CharmBase
 from ops.main import main
+from ops.model import ModelError
 from ops.pebble import ExecError, Layer
 
 from charm_config import CharmConfig, CharmConfigInvalidError
@@ -146,6 +147,11 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
         """
         if not self._container.can_connect():
             event.fail(message="Container is not ready")
+            return
+        try:
+            self._container.get_service(self._service_name)
+        except ModelError:
+            event.fail(message="UE service is not ready")
             return
         try:
             stdout, _ = self._exec_command_in_workload(command="ping -I oaitun_ue1 8.8.8.8 -c 10")
