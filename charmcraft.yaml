@@ -70,6 +70,12 @@ config:
         Slice Differentiator
         It needs to be a number between 0 and 16777215 or its hex representation. Hex value needs to be prefixed with `0x`.
 
+actions:
+  start-simulation:
+    description: |
+      Starts the network traffic simulation.
+      This action runs a `ping` against 8.8.8.8 (Google DNS) to make sure all the network components work correctly. 
+
 parts:
   charm:
     build-packages:
