@@ -4,13 +4,15 @@
 
 import tempfile
 
+import pytest
 import scenario
 from ops.pebble import Layer, ServiceStatus
+from ops.testing import ActionFailed
 
 from tests.unit.fixtures import UEFixtures
 
 
-class TestCharmConfigure(UEFixtures):
+class TestCharmSimulationAction(UEFixtures):
     def test_given_ue_container_not_available_when_start_simulation_action_then_action_status_is_failed(  # noqa: E501
         self,
     ):
@@ -24,7 +26,7 @@ class TestCharmConfigure(UEFixtures):
                 },
             )
             config_mount = scenario.Mount(
-                src=temp_dir,
+                source=temp_dir,
                 location="/tmp/conf",
             )
             container = scenario.Container(
@@ -40,11 +42,10 @@ class TestCharmConfigure(UEFixtures):
                 containers=[container],
             )
 
-            action_results = self.ctx.run_action("start-simulation", state_in)
+            with pytest.raises(ActionFailed) as exc_info:
+                self.ctx.run(self.ctx.on.action("start-simulation"), state_in)
 
-            assert not action_results.success
-            assert action_results.failure
-            assert action_results.failure == "Container is not ready"
+            assert exc_info.value.message == "Container is not ready"
 
     def test_given_ue_service_not_ready_when_start_simulation_action_then_action_status_is_failed(  # noqa: E501
         self,
@@ -59,7 +60,7 @@ class TestCharmConfigure(UEFixtures):
                 },
             )
             config_mount = scenario.Mount(
-                src=temp_dir,
+                source=temp_dir,
                 location="/tmp/conf",
             )
             container = scenario.Container(
@@ -75,11 +76,10 @@ class TestCharmConfigure(UEFixtures):
                 containers=[container],
             )
 
-            action_results = self.ctx.run_action("start-simulation", state_in)
+            with pytest.raises(ActionFailed) as exc_info:
+                self.ctx.run(self.ctx.on.action("start-simulation"), state_in)
 
-            assert not action_results.success
-            assert action_results.failure
-            assert action_results.failure == "UE service is not ready"
+            assert exc_info.value.message == "UE service is not ready"
 
     def test_given_ping_transmits_packets_correctly_when_start_simulation_action_then_action_status_is_successful(  # noqa: E501
         self,
@@ -95,23 +95,24 @@ class TestCharmConfigure(UEFixtures):
                 },
             )
             config_mount = scenario.Mount(
-                src=temp_dir,
+                source=temp_dir,
                 location="/tmp/conf",
             )
             container = scenario.Container(
                 name="ue",
                 can_connect=True,
                 layers={"ue": Layer({"services": {"ue": {}}})},
-                service_status={"ue": ServiceStatus.ACTIVE},
+                service_statuses={"ue": ServiceStatus.ACTIVE},
                 mounts={
                     "config": config_mount,
                 },
-                exec_mock={
-                    ("ping", "-I", "oaitun_ue1", "8.8.8.8", "-c", "10"): scenario.ExecOutput(
+                execs={
+                    scenario.Exec(
+                        command_prefix=["ping", "-I", "oaitun_ue1", "8.8.8.8", "-c", "10"],
                         return_code=0,
                         stdout=test_successful_stdout,
                         stderr="",
-                    ),
+                    )
                 },
             )
             state_in = scenario.State(
@@ -120,12 +121,10 @@ class TestCharmConfigure(UEFixtures):
                 containers=[container],
             )
 
-            action_results = self.ctx.run_action("start-simulation", state_in)
+            self.ctx.run(self.ctx.on.action("start-simulation"), state_in)
 
-            assert action_results.success
-            assert action_results.results
-            assert action_results.results["success"] == "true"
-            assert action_results.results["result"] == test_successful_stdout
+            assert self.ctx.action_results
+            assert self.ctx.action_results["result"] == test_successful_stdout
 
     def test_given_ping_doesnt_transmit_packets_correctly_when_start_simulation_action_then_action_status_is_failed(  # noqa: E501
         self,
@@ -140,23 +139,24 @@ class TestCharmConfigure(UEFixtures):
                 },
             )
             config_mount = scenario.Mount(
-                src=temp_dir,
+                source=temp_dir,
                 location="/tmp/conf",
             )
             container = scenario.Container(
                 name="ue",
                 can_connect=True,
                 layers={"ue": Layer({"services": {"ue": {}}})},
-                service_status={"ue": ServiceStatus.ACTIVE},
+                service_statuses={"ue": ServiceStatus.ACTIVE},
                 mounts={
                     "config": config_mount,
                 },
-                exec_mock={
-                    ("ping", "-I", "oaitun_ue1", "8.8.8.8", "-c", "10"): scenario.ExecOutput(
+                execs={
+                    scenario.Exec(
+                        command_prefix=["ping", "-I", "oaitun_ue1", "8.8.8.8", "-c", "10"],
                         return_code=1,
                         stdout="10 packets transmitted, 0 received, 100% packet loss, time 9012ms",
                         stderr="",
-                    ),
+                    )
                 },
             )
             state_in = scenario.State(
@@ -165,8 +165,7 @@ class TestCharmConfigure(UEFixtures):
                 containers=[container],
             )
 
-            action_results = self.ctx.run_action("start-simulation", state_in)
+            with pytest.raises(ActionFailed) as exc_info:
+                self.ctx.run(self.ctx.on.action("start-simulation"), state_in)
 
-            assert not action_results.success
-            assert action_results.failure
-            assert "Failed to execute simulation:" in action_results.failure
+            assert "Failed to execute simulation:" in exc_info.value.message

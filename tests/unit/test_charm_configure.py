@@ -21,7 +21,7 @@ class TestCharmConfigure(UEFixtures):
             self.mock_check_output.return_value = b"1.2.3.4"
             config_mount = scenario.Mount(
                 location="/tmp/conf",
-                src=tmpdir,
+                source=tmpdir,
             )
             container = scenario.Container(
                 name="ue",
@@ -34,7 +34,7 @@ class TestCharmConfigure(UEFixtures):
                 relations=[],
             )
 
-            self.ctx.run("config_changed", state_in)
+            self.ctx.run(self.ctx.on.pebble_ready(container), state_in)
 
             self.mock_k8s_privileged.patch_statefulset.assert_called_with(container_name="ue")
 
@@ -51,7 +51,7 @@ class TestCharmConfigure(UEFixtures):
                 },
             )
             config_mount = scenario.Mount(
-                src=temp_dir,
+                source=temp_dir,
                 location="/tmp/conf",
             )
             container = scenario.Container(
@@ -68,7 +68,7 @@ class TestCharmConfigure(UEFixtures):
                 model=scenario.Model(name="whatever"),
             )
 
-            self.ctx.run(container.pebble_ready_event, state_in)
+            self.ctx.run(self.ctx.on.pebble_ready(container), state_in)
 
             with open("tests/unit/resources/expected_config.conf") as expected_config_file:
                 expected_config = expected_config_file.read()
@@ -84,7 +84,7 @@ class TestCharmConfigure(UEFixtures):
         with tempfile.TemporaryDirectory() as temp_dir:
             self.mock_check_output.return_value = b"1.2.3.4"
             config_mount = scenario.Mount(
-                src=temp_dir,
+                source=temp_dir,
                 location="/tmp/conf",
             )
             container = scenario.Container(
@@ -106,7 +106,7 @@ class TestCharmConfigure(UEFixtures):
                 generated_config_file.write(expected_config)
             config_modification_time = os.stat(temp_dir + "/ue.conf").st_mtime
 
-            self.ctx.run(container.pebble_ready_event, state_in)
+            self.ctx.run(self.ctx.on.pebble_ready(container), state_in)
 
             assert os.stat(temp_dir + "/ue.conf").st_mtime == config_modification_time
 
@@ -123,7 +123,7 @@ class TestCharmConfigure(UEFixtures):
                 },
             )
             config_mount = scenario.Mount(
-                src=temp_dir,
+                source=temp_dir,
                 location="/tmp/conf",
             )
             container = scenario.Container(
@@ -140,9 +140,10 @@ class TestCharmConfigure(UEFixtures):
                 model=scenario.Model(name="whatever"),
             )
 
-            state_out = self.ctx.run(container.pebble_ready_event, state_in)
+            state_out = self.ctx.run(self.ctx.on.pebble_ready(container), state_in)
 
-            assert state_out.containers[0].layers == {
+            container = state_out.get_container("ue")
+            assert container.layers == {
                 "ue": Layer(
                     {
                         "services": {
@@ -168,7 +169,7 @@ class TestCharmConfigure(UEFixtures):
                 remote_app_data={},
             )
             config_mount = scenario.Mount(
-                src=temp_dir,
+                source=temp_dir,
                 location="/tmp/conf",
             )
             container = scenario.Container(
@@ -185,6 +186,7 @@ class TestCharmConfigure(UEFixtures):
                 model=scenario.Model(name="whatever"),
             )
 
-            state_out = self.ctx.run(container.pebble_ready_event, state_in)
+            state_out = self.ctx.run(self.ctx.on.pebble_ready(container), state_in)
 
-            assert state_out.containers[0].layers == {}
+            container = state_out.get_container("ue")
+            assert container.layers == {}

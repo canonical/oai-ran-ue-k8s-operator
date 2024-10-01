@@ -17,7 +17,7 @@ class TestCharmCollectStatus(UEFixtures):
             leader=False,
         )
 
-        state_out = self.ctx.run("collect_unit_status", state_in)
+        state_out = self.ctx.run(self.ctx.on.collect_unit_status(), state_in)
 
         assert state_out.unit_status == BlockedStatus("Scaling is not implemented for this charm")
 
@@ -48,7 +48,7 @@ class TestCharmCollectStatus(UEFixtures):
             config={config_param: value},
         )
 
-        state_out = self.ctx.run("collect_unit_status", state_in)
+        state_out = self.ctx.run(self.ctx.on.collect_unit_status(), state_in)
 
         assert state_out.unit_status == BlockedStatus(
             f"The following configurations are not valid: ['{config_param}']"
@@ -56,12 +56,12 @@ class TestCharmCollectStatus(UEFixtures):
 
     def test_given_fiveg_rfsim_relation_not_created_when_collect_unit_status_then_status_is_blocked(  # noqa: E501
         self,
-    ):  # noqa: E501
+    ):
         with tempfile.TemporaryDirectory() as temp_dir:
             self.mock_k8s_privileged.is_patched.return_value = True
             self.mock_check_output.return_value = b"1.1.1.1"
             config_mount = scenario.Mount(
-                src=temp_dir,
+                source=temp_dir,
                 location="/tmp/conf",
             )
             container = scenario.Container(
@@ -75,7 +75,7 @@ class TestCharmCollectStatus(UEFixtures):
                 containers=[container],
             )
 
-            state_out = self.ctx.run("collect_unit_status", state_in)
+            state_out = self.ctx.run(self.ctx.on.collect_unit_status(), state_in)
 
             assert state_out.unit_status == BlockedStatus(
                 "Waiting for fiveg_rfsim relation to be created"
@@ -83,7 +83,7 @@ class TestCharmCollectStatus(UEFixtures):
 
     def test_given_fiveg_rfsim_relation_created_but_rfsim_address_is_not_available_when_collect_unit_status_then_status_is_waiting(  # noqa: E501
         self,
-    ):  # noqa: E501
+    ):
         with tempfile.TemporaryDirectory() as temp_dir:
             self.mock_k8s_privileged.is_patched.return_value = True
             self.mock_check_output.return_value = b"1.1.1.1"
@@ -93,7 +93,7 @@ class TestCharmCollectStatus(UEFixtures):
                 remote_app_data={},
             )
             config_mount = scenario.Mount(
-                src=temp_dir,
+                source=temp_dir,
                 location="/tmp/conf",
             )
             container = scenario.Container(
@@ -107,7 +107,7 @@ class TestCharmCollectStatus(UEFixtures):
                 containers=[container],
             )
 
-            state_out = self.ctx.run("collect_unit_status", state_in)
+            state_out = self.ctx.run(self.ctx.on.collect_unit_status(), state_in)
 
             assert state_out.unit_status == WaitingStatus("Waiting for RFSIM information")
 
@@ -122,7 +122,7 @@ class TestCharmCollectStatus(UEFixtures):
             containers=[container],
         )
 
-        state_out = self.ctx.run("collect_unit_status", state_in)
+        state_out = self.ctx.run(self.ctx.on.collect_unit_status(), state_in)
 
         assert state_out.unit_status == WaitingStatus("Waiting for container to be ready")
 
@@ -138,7 +138,7 @@ class TestCharmCollectStatus(UEFixtures):
             containers=[container],
         )
 
-        state_out = self.ctx.run("collect_unit_status", state_in)
+        state_out = self.ctx.run(self.ctx.on.collect_unit_status(), state_in)
 
         assert state_out.unit_status == WaitingStatus("Waiting for Pod IP address to be available")
 
@@ -157,7 +157,7 @@ class TestCharmCollectStatus(UEFixtures):
             containers=[container],
         )
 
-        state_out = self.ctx.run("collect_unit_status", state_in)
+        state_out = self.ctx.run(self.ctx.on.collect_unit_status(), state_in)
 
         assert state_out.unit_status == WaitingStatus("Waiting for statefulset to be patched")
 
@@ -180,7 +180,7 @@ class TestCharmCollectStatus(UEFixtures):
             containers=[container],
         )
 
-        state_out = self.ctx.run("collect_unit_status", state_in)
+        state_out = self.ctx.run(self.ctx.on.collect_unit_status(), state_in)
 
         assert state_out.unit_status == WaitingStatus("Waiting for storage to be attached")
 
@@ -195,7 +195,7 @@ class TestCharmCollectStatus(UEFixtures):
                 },
             )
             config_mount = scenario.Mount(
-                src=temp_dir,
+                source=temp_dir,
                 location="/tmp/conf",
             )
             container = scenario.Container(
@@ -211,6 +211,6 @@ class TestCharmCollectStatus(UEFixtures):
                 containers=[container],
             )
 
-            state_out = self.ctx.run("collect_unit_status", state_in)
+            state_out = self.ctx.run(self.ctx.on.collect_unit_status(), state_in)
 
             assert state_out.unit_status == ActiveStatus()
