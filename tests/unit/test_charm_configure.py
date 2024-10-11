@@ -6,7 +6,7 @@
 import os
 import tempfile
 
-import scenario
+from ops import testing
 from ops.pebble import Layer
 
 from tests.unit.fixtures import UEFixtures
@@ -19,16 +19,16 @@ class TestCharmConfigure(UEFixtures):
         with tempfile.TemporaryDirectory() as tmpdir:
             self.mock_k8s_privileged.is_patched.return_value = False
             self.mock_check_output.return_value = b"1.2.3.4"
-            config_mount = scenario.Mount(
+            config_mount = testing.Mount(
                 location="/tmp/conf",
                 source=tmpdir,
             )
-            container = scenario.Container(
+            container = testing.Container(
                 name="ue",
                 mounts={"config": config_mount},
                 can_connect=True,
             )
-            state_in = scenario.State(
+            state_in = testing.State(
                 leader=True,
                 containers=[container],
                 relations=[],
@@ -43,29 +43,29 @@ class TestCharmConfigure(UEFixtures):
     ):
         with tempfile.TemporaryDirectory() as temp_dir:
             self.mock_check_output.return_value = b"1.2.3.4"
-            rfsim_relation = scenario.Relation(
+            rfsim_relation = testing.Relation(
                 endpoint="fiveg_rfsim",
                 interface="fiveg_rfsim",
                 remote_app_data={
                     "rfsim_address": "1.1.1.1",
                 },
             )
-            config_mount = scenario.Mount(
+            config_mount = testing.Mount(
                 source=temp_dir,
                 location="/tmp/conf",
             )
-            container = scenario.Container(
+            container = testing.Container(
                 name="ue",
                 can_connect=True,
                 mounts={
                     "config": config_mount,
                 },
             )
-            state_in = scenario.State(
+            state_in = testing.State(
                 leader=True,
                 relations=[rfsim_relation],
                 containers=[container],
-                model=scenario.Model(name="whatever"),
+                model=testing.Model(name="whatever"),
             )
 
             self.ctx.run(self.ctx.on.pebble_ready(container), state_in)
@@ -83,22 +83,22 @@ class TestCharmConfigure(UEFixtures):
     ):
         with tempfile.TemporaryDirectory() as temp_dir:
             self.mock_check_output.return_value = b"1.2.3.4"
-            config_mount = scenario.Mount(
+            config_mount = testing.Mount(
                 source=temp_dir,
                 location="/tmp/conf",
             )
-            container = scenario.Container(
+            container = testing.Container(
                 name="ue",
                 can_connect=True,
                 mounts={
                     "config": config_mount,
                 },
             )
-            state_in = scenario.State(
+            state_in = testing.State(
                 leader=True,
                 relations=[],
                 containers=[container],
-                model=scenario.Model(name="whatever"),
+                model=testing.Model(name="whatever"),
             )
             with open("tests/unit/resources/expected_config.conf") as expected_config_file:
                 expected_config = expected_config_file.read().strip()
@@ -115,29 +115,29 @@ class TestCharmConfigure(UEFixtures):
     ):
         with tempfile.TemporaryDirectory() as temp_dir:
             self.mock_check_output.return_value = b"1.2.3.4"
-            rfsim_relation = scenario.Relation(
+            rfsim_relation = testing.Relation(
                 endpoint="fiveg_rfsim",
                 interface="fiveg_rfsim",
                 remote_app_data={
                     "rfsim_address": "1.1.1.1",
                 },
             )
-            config_mount = scenario.Mount(
+            config_mount = testing.Mount(
                 source=temp_dir,
                 location="/tmp/conf",
             )
-            container = scenario.Container(
+            container = testing.Container(
                 name="ue",
                 can_connect=True,
                 mounts={
                     "config": config_mount,
                 },
             )
-            state_in = scenario.State(
+            state_in = testing.State(
                 leader=True,
                 relations=[rfsim_relation],
                 containers=[container],
-                model=scenario.Model(name="whatever"),
+                model=testing.Model(name="whatever"),
             )
 
             state_out = self.ctx.run(self.ctx.on.pebble_ready(container), state_in)
@@ -163,27 +163,27 @@ class TestCharmConfigure(UEFixtures):
     ):
         with tempfile.TemporaryDirectory() as temp_dir:
             self.mock_check_output.return_value = b"1.2.3.4"
-            rfsim_relation = scenario.Relation(
+            rfsim_relation = testing.Relation(
                 endpoint="fiveg_rfsim",
                 interface="fiveg_rfsim",
                 remote_app_data={},
             )
-            config_mount = scenario.Mount(
+            config_mount = testing.Mount(
                 source=temp_dir,
                 location="/tmp/conf",
             )
-            container = scenario.Container(
+            container = testing.Container(
                 name="ue",
                 can_connect=True,
                 mounts={
                     "config": config_mount,
                 },
             )
-            state_in = scenario.State(
+            state_in = testing.State(
                 leader=True,
                 relations=[rfsim_relation],
                 containers=[container],
-                model=scenario.Model(name="whatever"),
+                model=testing.Model(name="whatever"),
             )
 
             state_out = self.ctx.run(self.ctx.on.pebble_ready(container), state_in)

@@ -5,7 +5,7 @@
 import tempfile
 
 import pytest
-import scenario
+from ops import testing
 from ops.model import ActiveStatus, BlockedStatus, WaitingStatus
 
 from tests.unit.fixtures import UEFixtures
@@ -13,7 +13,7 @@ from tests.unit.fixtures import UEFixtures
 
 class TestCharmCollectStatus(UEFixtures):
     def test_given_unit_is_not_leader_when_collect_status_then_status_is_blocked(self):
-        state_in = scenario.State(
+        state_in = testing.State(
             leader=False,
         )
 
@@ -43,7 +43,7 @@ class TestCharmCollectStatus(UEFixtures):
     def test_given_invalid_config_when_collect_status_then_status_is_blocked(
         self, config_param, value
     ):
-        state_in = scenario.State(
+        state_in = testing.State(
             leader=True,
             config={config_param: value},
         )
@@ -60,16 +60,16 @@ class TestCharmCollectStatus(UEFixtures):
         with tempfile.TemporaryDirectory() as temp_dir:
             self.mock_k8s_privileged.is_patched.return_value = True
             self.mock_check_output.return_value = b"1.1.1.1"
-            config_mount = scenario.Mount(
+            config_mount = testing.Mount(
                 source=temp_dir,
                 location="/tmp/conf",
             )
-            container = scenario.Container(
+            container = testing.Container(
                 name="ue",
                 can_connect=True,
                 mounts={"config": config_mount},
             )
-            state_in = scenario.State(
+            state_in = testing.State(
                 leader=True,
                 relations=[],
                 containers=[container],
@@ -87,21 +87,21 @@ class TestCharmCollectStatus(UEFixtures):
         with tempfile.TemporaryDirectory() as temp_dir:
             self.mock_k8s_privileged.is_patched.return_value = True
             self.mock_check_output.return_value = b"1.1.1.1"
-            rfsim_relation = scenario.Relation(
+            rfsim_relation = testing.Relation(
                 endpoint="fiveg_rfsim",
                 interface="fiveg_rfsim",
                 remote_app_data={},
             )
-            config_mount = scenario.Mount(
+            config_mount = testing.Mount(
                 source=temp_dir,
                 location="/tmp/conf",
             )
-            container = scenario.Container(
+            container = testing.Container(
                 name="ue",
                 can_connect=True,
                 mounts={"config": config_mount},
             )
-            state_in = scenario.State(
+            state_in = testing.State(
                 leader=True,
                 relations=[rfsim_relation],
                 containers=[container],
@@ -112,11 +112,11 @@ class TestCharmCollectStatus(UEFixtures):
             assert state_out.unit_status == WaitingStatus("Waiting for RFSIM information")
 
     def test_given_cant_connect_to_container_when_collect_status_then_status_is_waiting(self):
-        container = scenario.Container(
+        container = testing.Container(
             name="ue",
             can_connect=False,
         )
-        state_in = scenario.State(
+        state_in = testing.State(
             leader=True,
             relations=[],
             containers=[container],
@@ -128,11 +128,11 @@ class TestCharmCollectStatus(UEFixtures):
 
     def test_given_pod_address_not_available_when_collect_status_then_status_is_waiting(self):
         self.mock_check_output.return_value = b""
-        container = scenario.Container(
+        container = testing.Container(
             name="ue",
             can_connect=True,
         )
-        state_in = scenario.State(
+        state_in = testing.State(
             leader=True,
             relations=[],
             containers=[container],
@@ -147,11 +147,11 @@ class TestCharmCollectStatus(UEFixtures):
     ):
         self.mock_k8s_privileged.is_patched.return_value = False
         self.mock_check_output.return_value = b"1.2.3.4"
-        container = scenario.Container(
+        container = testing.Container(
             name="ue",
             can_connect=True,
         )
-        state_in = scenario.State(
+        state_in = testing.State(
             leader=True,
             relations=[],
             containers=[container],
@@ -163,18 +163,18 @@ class TestCharmCollectStatus(UEFixtures):
 
     def test_given_config_file_doesnt_exist_when_collect_status_then_status_is_waiting(self):
         self.mock_check_output.return_value = b"1.2.3.4"
-        rfsim_relation = scenario.Relation(
+        rfsim_relation = testing.Relation(
             endpoint="fiveg_rfsim",
             interface="fiveg_rfsim",
             remote_app_data={
                 "rfsim_address": "1.1.1.1",
             },
         )
-        container = scenario.Container(
+        container = testing.Container(
             name="ue",
             can_connect=True,
         )
-        state_in = scenario.State(
+        state_in = testing.State(
             leader=True,
             relations=[rfsim_relation],
             containers=[container],
@@ -187,25 +187,25 @@ class TestCharmCollectStatus(UEFixtures):
     def test_given_all_prerequisites_met_when_collect_status_then_status_is_active(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             self.mock_check_output.return_value = b"1.2.3.4"
-            rfsim_relation = scenario.Relation(
+            rfsim_relation = testing.Relation(
                 endpoint="fiveg_rfsim",
                 interface="fiveg_rfsim",
                 remote_app_data={
                     "rfsim_address": "1.1.1.1",
                 },
             )
-            config_mount = scenario.Mount(
+            config_mount = testing.Mount(
                 source=temp_dir,
                 location="/tmp/conf",
             )
-            container = scenario.Container(
+            container = testing.Container(
                 name="ue",
                 can_connect=True,
                 mounts={
                     "config": config_mount,
                 },
             )
-            state_in = scenario.State(
+            state_in = testing.State(
                 leader=True,
                 relations=[rfsim_relation],
                 containers=[container],

@@ -5,7 +5,7 @@
 import tempfile
 
 import pytest
-import scenario
+from ops import testing
 from ops.pebble import Layer, ServiceStatus
 from ops.testing import ActionFailed
 
@@ -18,25 +18,25 @@ class TestCharmSimulationAction(UEFixtures):
     ):
         with tempfile.TemporaryDirectory() as temp_dir:
             self.mock_check_output.return_value = b"1.2.3.4"
-            rfsim_relation = scenario.Relation(
+            rfsim_relation = testing.Relation(
                 endpoint="fiveg_rfsim",
                 interface="fiveg_rfsim",
                 remote_app_data={
                     "rfsim_address": "1.1.1.1",
                 },
             )
-            config_mount = scenario.Mount(
+            config_mount = testing.Mount(
                 source=temp_dir,
                 location="/tmp/conf",
             )
-            container = scenario.Container(
+            container = testing.Container(
                 name="ue",
                 can_connect=False,
                 mounts={
                     "config": config_mount,
                 },
             )
-            state_in = scenario.State(
+            state_in = testing.State(
                 leader=True,
                 relations=[rfsim_relation],
                 containers=[container],
@@ -52,25 +52,25 @@ class TestCharmSimulationAction(UEFixtures):
     ):
         with tempfile.TemporaryDirectory() as temp_dir:
             self.mock_check_output.return_value = b"1.2.3.4"
-            rfsim_relation = scenario.Relation(
+            rfsim_relation = testing.Relation(
                 endpoint="fiveg_rfsim",
                 interface="fiveg_rfsim",
                 remote_app_data={
                     "rfsim_address": "1.1.1.1",
                 },
             )
-            config_mount = scenario.Mount(
+            config_mount = testing.Mount(
                 source=temp_dir,
                 location="/tmp/conf",
             )
-            container = scenario.Container(
+            container = testing.Container(
                 name="ue",
                 can_connect=True,
                 mounts={
                     "config": config_mount,
                 },
             )
-            state_in = scenario.State(
+            state_in = testing.State(
                 leader=True,
                 relations=[rfsim_relation],
                 containers=[container],
@@ -87,18 +87,18 @@ class TestCharmSimulationAction(UEFixtures):
         test_successful_stdout = "10 packets transmitted, 10 received, 0% packet loss, time 9012ms"
         with tempfile.TemporaryDirectory() as temp_dir:
             self.mock_check_output.return_value = b"1.2.3.4"
-            rfsim_relation = scenario.Relation(
+            rfsim_relation = testing.Relation(
                 endpoint="fiveg_rfsim",
                 interface="fiveg_rfsim",
                 remote_app_data={
                     "rfsim_address": "1.1.1.1",
                 },
             )
-            config_mount = scenario.Mount(
+            config_mount = testing.Mount(
                 source=temp_dir,
                 location="/tmp/conf",
             )
-            container = scenario.Container(
+            container = testing.Container(
                 name="ue",
                 can_connect=True,
                 layers={"ue": Layer({"services": {"ue": {}}})},
@@ -107,7 +107,7 @@ class TestCharmSimulationAction(UEFixtures):
                     "config": config_mount,
                 },
                 execs={
-                    scenario.Exec(
+                    testing.Exec(
                         command_prefix=["ping", "-I", "oaitun_ue1", "8.8.8.8", "-c", "10"],
                         return_code=0,
                         stdout=test_successful_stdout,
@@ -115,7 +115,7 @@ class TestCharmSimulationAction(UEFixtures):
                     )
                 },
             )
-            state_in = scenario.State(
+            state_in = testing.State(
                 leader=True,
                 relations=[rfsim_relation],
                 containers=[container],
@@ -131,18 +131,18 @@ class TestCharmSimulationAction(UEFixtures):
     ):
         with tempfile.TemporaryDirectory() as temp_dir:
             self.mock_check_output.return_value = b"1.2.3.4"
-            rfsim_relation = scenario.Relation(
+            rfsim_relation = testing.Relation(
                 endpoint="fiveg_rfsim",
                 interface="fiveg_rfsim",
                 remote_app_data={
                     "rfsim_address": "1.1.1.1",
                 },
             )
-            config_mount = scenario.Mount(
+            config_mount = testing.Mount(
                 source=temp_dir,
                 location="/tmp/conf",
             )
-            container = scenario.Container(
+            container = testing.Container(
                 name="ue",
                 can_connect=True,
                 layers={"ue": Layer({"services": {"ue": {}}})},
@@ -151,7 +151,7 @@ class TestCharmSimulationAction(UEFixtures):
                     "config": config_mount,
                 },
                 execs={
-                    scenario.Exec(
+                    testing.Exec(
                         command_prefix=["ping", "-I", "oaitun_ue1", "8.8.8.8", "-c", "10"],
                         return_code=1,
                         stdout="10 packets transmitted, 0 received, 100% packet loss, time 9012ms",
@@ -159,7 +159,7 @@ class TestCharmSimulationAction(UEFixtures):
                     )
                 },
             )
-            state_in = scenario.State(
+            state_in = testing.State(
                 leader=True,
                 relations=[rfsim_relation],
                 containers=[container],
