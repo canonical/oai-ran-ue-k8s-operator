@@ -18,9 +18,9 @@ from ops import (
     CollectStatusEvent,
     Framework,
     WaitingStatus,
+    main,
 )
 from ops.charm import ActionEvent, CharmBase
-from ops.main import main
 from ops.model import ModelError
 from ops.pebble import ExecError, Layer
 
