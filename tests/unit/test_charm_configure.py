@@ -150,7 +150,7 @@ class TestCharmConfigure(UEFixtures):
                             "ue": {
                                 "startup": "enabled",
                                 "override": "replace",
-                                "command": "/opt/oai-gnb/bin/nr-uesoftmodem -O /tmp/conf/ue.conf --sa --rfsim -r 51 --numerology 1 -C 3924180000 --ssb 196 -E --band 77 --log_config.global_log_options level,nocolor,time --rfsimulator.serveraddr 1.1.1.1",  # noqa: E501
+                                "command": "/opt/oai-gnb/bin/nr-uesoftmodem -O /tmp/conf/ue.conf --sa --rfsim -r 51 --numerology 1 -C 3924180000 --ssb 196 --band 77 --log_config.global_log_options level,nocolor,time --rfsimulator.serveraddr 1.1.1.1",  # noqa: E501
                                 "environment": {"TZ": "UTC"},
                             }
                         }
