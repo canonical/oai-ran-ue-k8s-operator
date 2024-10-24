@@ -264,7 +264,6 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
                 "3924180000",
                 "--ssb",
                 "196",
-                "-E",
                 "--band",
                 "77",
                 "--log_config.global_log_options",
