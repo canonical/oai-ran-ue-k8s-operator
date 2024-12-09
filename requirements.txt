@@ -30,7 +30,7 @@ iniconfig==2.0.0
     # via pytest
 jinja2==3.1.4
     # via -r requirements.in
-lightkube==0.15.5
+lightkube==0.15.6
     # via
     #   -r requirements.in
     #   cosl
@@ -40,7 +40,7 @@ lightkube-models==1.31.1.8
     #   lightkube
 markupsafe==2.1.5
     # via jinja2
-ops==2.17.0
+ops==2.17.1
     # via
     #   -r requirements.in
     #   cosl
@@ -51,14 +51,14 @@ packaging==24.1
     # via pytest
 pluggy==1.5.0
     # via pytest
-pydantic==2.10.1
+pydantic==2.10.3
     # via
     #   -r requirements.in
     #   cosl
     #   pytest-interface-tester
 pydantic-core==2.27.1
     # via pydantic
-pytest==8.3.3
+pytest==8.3.4
     # via pytest-interface-tester
 pytest-interface-tester==3.3.0
     # via -r requirements.in
