@@ -115,7 +115,7 @@ LIBAPI = 0
 
 # Increment this PATCH version before using `charmcraft publish-lib` or reset
 # to 0 if you are raising the major API version
-LIBPATCH = 3
+LIBPATCH = 4
 
 
 logger = logging.getLogger(__name__)
@@ -308,7 +308,7 @@ class RFSIMRequires(Object):
 
         try:
             provider_app_data = ProviderAppData(**remote_app_relation_data)
-        except ValidationError:
-            logger.error("Invalid relation data: %s", remote_app_relation_data)
+        except ValidationError as err:
+            logger.error("Invalid relation data: %s: %s", remote_app_relation_data, str(err))
             return None
         return provider_app_data
