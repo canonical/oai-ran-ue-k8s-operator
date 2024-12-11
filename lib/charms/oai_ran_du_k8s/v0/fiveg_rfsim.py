@@ -5,7 +5,7 @@
 
 This library contains the Requires and Provides classes for handling the `fiveg_rfsim` interface.
 
-The purpose of this library is to relate two charms to pass the RF SIM address.
+The purpose of this library is to relate two charms to pass the RF SIM address and network information (SST and SD).
 In the Telco world this will typically be charms implementing
 the DU (Distributed Unit) and the UE (User equipment).
 
@@ -21,14 +21,14 @@ Add the following libraries to the charm's `requirements.txt` file:
 - pytest-interface-tester
 
 ### Provider charm
-The provider charm is the one providing the information about RF SIM address.
+The provider charm is the one providing the information about RF SIM address, Network Slice Type (SST) and Network Differentiator (SD).
 Typically, this will be the DU charm.
 
 Example:
 ```python
 
-from ops.charm import CharmBase, RelationJoinedEvent
-from ops.main import main
+from ops import main
+from ops.charm import CharmBase, RelationChangedEvent
 
 from charms.oai_ran_du_k8s.v0.fiveg_rfsim import RFSIMProvides
 
@@ -36,18 +36,22 @@ from charms.oai_ran_du_k8s.v0.fiveg_rfsim import RFSIMProvides
 class DummyFivegRFSIMProviderCharm(CharmBase):
 
     RFSIM_ADDRESS = "192.168.70.130"
+    SST = 1
+    SD = 1
 
     def __init__(self, *args):
         super().__init__(*args)
         self.rfsim_provider = RFSIMProvides(self, "fiveg_rfsim")
         self.framework.observe(
-            self.on.fiveg_rfsim_relation_joined, self._on_fiveg_rfsim_relation_joined
+            self.on.fiveg_rfsim_relation_changed, self._on_fiveg_rfsim_relation_changed
         )
 
-    def _on_fiveg_rfsim_relation_joined(self, event: RelationJoinedEvent):
+    def _on_fiveg_rfsim_relation_changed(self, event: RelationChangedEvent):
         if self.unit.is_leader():
             self.rfsim_provider.set_rfsim_information(
                 rfsim_address=self.RFSIM_ADDRESS
+                sst=self.SST,
+                sd=self.SD,
             )
 
 
@@ -62,10 +66,10 @@ Typically, this will be the UE charm.
 Example:
 ```python
 
-from ops.charm import CharmBase
-from ops.main import main
+from ops import main
+from ops.charm import CharmBase, RelationChangedEvent
 
-from charms.oai_ran_du_k8s.v0.fiveg_rfsim import FivegRFSIMInformationAvailableEvent, RFSIMRequires
+from charms.oai_ran_du_k8s.v0.fiveg_rfsim import RFSIMRequires
 
 logger = logging.getLogger(__name__)
 
@@ -76,12 +80,14 @@ class DummyFivegRFSIMRequires(CharmBase):
         super().__init__(*args)
         self.rfsim_requirer = RFSIMRequires(self, "fiveg_rfsim")
         self.framework.observe(
-            self.rfsim_requirer.on.fiveg_rfsim_provider_available, self._on_rfsim_information_available
+            self.on.fiveg_rfsim_relation_changed, self._on_fiveg_rfsim_relation_changed
         )
 
-    def _on_rfsim_information_available(self, event: FivegRFSIMInformationAvailableEvent):
+    def _on_fiveg_rfsim_relation_changed(self, event: RelationChangedEvent):
         provider_rfsim_address = event.rfsim_address
-        <do something with the rfsim address here>
+        provider_sst = event.sst
+        provider_st = event.sd
+        <do something with the rfsim address, SST and SD here>
 
 
 if __name__ == "__main__":
@@ -95,10 +101,10 @@ import logging
 from typing import Any, Dict, Optional
 
 from interface_tester.schema_base import DataBagSchema
-from ops.charm import CharmBase, CharmEvents, RelationChangedEvent
-from ops.framework import EventBase, EventSource, Handle, Object
+from ops.charm import CharmBase
+from ops.framework import Object
 from ops.model import Relation
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field, IPvAnyAddress, ValidationError
 
 
 # The unique Charmhub library identifier, never change it
@@ -109,25 +115,55 @@ LIBAPI = 0
 
 # Increment this PATCH version before using `charmcraft publish-lib` or reset
 # to 0 if you are raising the major API version
-LIBPATCH = 2
+LIBPATCH = 4
 
 
 logger = logging.getLogger(__name__)
 
+"""Schemas definition for the provider and requirer sides of the `fiveg_rfsim` interface.
+It exposes two interface_tester.schema_base.DataBagSchema subclasses called:
+- ProviderSchema
+- RequirerSchema
+Examples:
+    ProviderSchema:
+        unit: <empty>
+        app: {
+            "rfsim_address": "192.168.70.130",
+            "sst": 1,
+            "sd": 1,
+        }
+    RequirerSchema:
+        unit: <empty>
+        app:  <empty>
+"""
 
-class FivegRFSIMProviderAppData(BaseModel):
+
+class ProviderAppData(BaseModel):
     """Provider app data for fiveg_rfsim."""
 
-    rfsim_address: str = Field(
+    rfsim_address: IPvAnyAddress = Field(
         description="RF simulator service address which is equal to DU pod ip",
         examples=["192.168.70.130"],
+    )
+    sst: int = Field(
+        description="Slice/Service Type",
+        examples=[1, 2, 3, 4],
+        ge=0,
+        le=255,
+    )
+    sd: Optional[int] = Field(
+        description="Slice Differentiator",
+        default=None,
+        examples=[1],
+        ge=0,
+        le=16777215,
     )
 
 
 class ProviderSchema(DataBagSchema):
     """Provider schema for the fiveg_rfsim interface."""
 
-    app: FivegRFSIMProviderAppData
+    app_data: ProviderAppData
 
 
 def provider_data_is_valid(data: Dict[str, Any]) -> bool:
@@ -140,39 +176,11 @@ def provider_data_is_valid(data: Dict[str, Any]) -> bool:
         bool: True if data is valid, False otherwise.
     """
     try:
-        ProviderSchema(app=data)
+        ProviderSchema(app_data=ProviderAppData(**data))
         return True
     except ValidationError as e:
         logger.error("Invalid data: %s", e)
         return False
-
-
-class FivegRFSIMInformationAvailableEvent(EventBase):
-    """Charm event emitted when the RFSIM provider info is available.
-
-    The event carries the RFSIM provider's address.
-    """
-
-    def __init__(self, handle: Handle, rfsim_address: str):
-        """Init."""
-        super().__init__(handle)
-        self.rfsim_address = rfsim_address
-
-    def snapshot(self) -> dict:
-        """Return snapshot."""
-        return {
-            "rfsim_address": self.rfsim_address,
-        }
-
-    def restore(self, snapshot: dict) -> None:
-        """Restores snapshot."""
-        self.rfsim_address = snapshot["rfsim_address"]
-
-
-class FivegRFSIMRequirerCharmEvents(CharmEvents):
-    """The event that the RFSIM requirer charm can leverage."""
-
-    fiveg_rfsim_provider_available = EventSource(FivegRFSIMInformationAvailableEvent)
 
 
 class FivegRFSIMError(Exception):
@@ -192,72 +200,89 @@ class RFSIMProvides(Object):
         self.relation_name = relation_name
         self.charm = charm
 
-    def set_rfsim_information(self, rfsim_address: str) -> None:
+    def set_rfsim_information(self, rfsim_address: str, sst: int, sd: Optional[int]) -> None:
         """Push the information about the RFSIM interface in the application relation data.
 
         Args:
             rfsim_address (str): rfsim service address which is equal to DU pod ip.
+            sst (int): Slice/Service Type
+            sd (Optional[int]): Slice Differentiator
         """
         if not self.charm.unit.is_leader():
             raise FivegRFSIMError("Unit must be leader to set application relation data.")
         relations = self.model.relations[self.relation_name]
         if not relations:
             raise FivegRFSIMError(f"Relation {self.relation_name} not created yet.")
-        if not provider_data_is_valid({"rfsim_address": rfsim_address}):
+        if not provider_data_is_valid(
+            {
+                "rfsim_address": rfsim_address,
+                "sst": sst,
+                "sd": sd,
+            }
+        ):
             raise FivegRFSIMError("Invalid relation data")
         for relation in relations:
-            relation.data[self.charm.app].update(
-                {
-                    "rfsim_address": rfsim_address,
-                }
-            )
+            data = {
+                "rfsim_address": rfsim_address,
+                "sst": str(sst),
+            }
+            if sd is not None:
+                data["sd"] = str(sd)
+            relation.data[self.charm.app].update(data)
 
 
 class RFSIMRequires(Object):
     """Class to be instantiated by the charm requiring relation using the `fiveg_rfsim` interface."""
-
-    on = FivegRFSIMRequirerCharmEvents()
 
     def __init__(self, charm: CharmBase, relation_name: str):
         """Init."""
         super().__init__(charm, relation_name)
         self.charm = charm
         self.relation_name = relation_name
-        self.framework.observe(charm.on[relation_name].relation_changed, self._on_relation_changed)
-
-    def _on_relation_changed(self, event: RelationChangedEvent) -> None:
-        """Handle relation changed event.
-
-        Args:
-            event (RelationChangedEvent): Juju event.
-        """
-        if remote_app_relation_data := self._get_remote_app_relation_data(event.relation):
-            self.on.fiveg_rfsim_provider_available.emit(
-                rfsim_address=remote_app_relation_data["rfsim_address"],
-            )
 
     @property
-    def rfsim_address(self) -> Optional[str]:
+    def rfsim_address(self) -> Optional[IPvAnyAddress]:
         """Return address of the RFSIM.
 
         Returns:
-            str: rfsim address which is equal to DU pod ip.
+            Optional[IPvAnyAddress]: rfsim address which is equal to DU pod ip.
         """
-        if remote_app_relation_data := self._get_remote_app_relation_data():
-            return remote_app_relation_data.get("rfsim_address")
+        if remote_app_relation_data := self.get_provider_rfsim_information():
+            return remote_app_relation_data.rfsim_address
         return None
 
-    def _get_remote_app_relation_data(
-        self, relation: Optional[Relation] = None
-    ) -> Optional[Dict[str, str]]:
+    @property
+    def sst(self) -> Optional[int]:
+        """Return the Network Slice Service Type (SST).
+
+        Returns:
+            Optional[int]: sst (Network Slice Service Type)
+        """
+        if remote_app_relation_data := self.get_provider_rfsim_information():
+            return remote_app_relation_data.sst
+        return None
+
+    @property
+    def sd(self) -> Optional[int]:
+        """Return the Network Slice Differentiator (SD).
+
+        Returns:
+           Optional[int] : sd (Network Slice Differentiator)
+        """
+        if remote_app_relation_data := self.get_provider_rfsim_information():
+            return remote_app_relation_data.sd
+        return None
+
+    def get_provider_rfsim_information(self, relation: Optional[Relation] = None
+    ) -> Optional[ProviderAppData]:
         """Get relation data for the remote application.
 
         Args:
             relation: Juju relation object (optional).
 
         Returns:
-            Dict: Relation data for the remote application
-            or None if the relation data is invalid.
+            ProviderAppData: Relation data for the remote application if data is valid,
+            None otherwise.
         """
         relation = relation or self.model.get_relation(self.relation_name)
         if not relation:
@@ -266,8 +291,24 @@ class RFSIMRequires(Object):
         if not relation.app:
             logger.warning("No remote application in relation: %s", self.relation_name)
             return None
-        remote_app_relation_data = dict(relation.data[relation.app])
-        if not provider_data_is_valid(remote_app_relation_data):
-            logger.error("Invalid relation data: %s", remote_app_relation_data)
+        remote_app_relation_data: Dict[str, Any] = dict(relation.data[relation.app])
+
+        try:
+            remote_app_relation_data["sst"] = int(remote_app_relation_data.get("sst", ""))
+        except ValueError as err:
+            logger.error("Invalid relation data: %s: %s", remote_app_relation_data, str(err))
             return None
-        return remote_app_relation_data
+
+        try:
+            if sd := remote_app_relation_data.get("sd"):
+                remote_app_relation_data["sd"] = int(sd)
+        except ValueError as err:
+            logger.error("Invalid relation data: %s: %s", remote_app_relation_data, str(err))
+            return None
+
+        try:
+            provider_app_data = ProviderAppData(**remote_app_relation_data)
+        except ValidationError as err:
+            logger.error("Invalid relation data: %s: %s", remote_app_relation_data, str(err))
+            return None
+        return provider_app_data

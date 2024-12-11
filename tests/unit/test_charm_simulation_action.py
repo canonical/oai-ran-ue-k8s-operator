@@ -23,6 +23,7 @@ class TestCharmSimulationAction(UEFixtures):
                 interface="fiveg_rfsim",
                 remote_app_data={
                     "rfsim_address": "1.1.1.1",
+                    "sst": "1",
                 },
             )
             config_mount = testing.Mount(
@@ -57,6 +58,7 @@ class TestCharmSimulationAction(UEFixtures):
                 interface="fiveg_rfsim",
                 remote_app_data={
                     "rfsim_address": "1.1.1.1",
+                    "sst": "1",
                 },
             )
             config_mount = testing.Mount(
@@ -92,6 +94,7 @@ class TestCharmSimulationAction(UEFixtures):
                 interface="fiveg_rfsim",
                 remote_app_data={
                     "rfsim_address": "1.1.1.1",
+                    "sst": "1",
                 },
             )
             config_mount = testing.Mount(
@@ -136,6 +139,7 @@ class TestCharmSimulationAction(UEFixtures):
                 interface="fiveg_rfsim",
                 remote_app_data={
                     "rfsim_address": "1.1.1.1",
+                    "sst": "1",
                 },
             )
             config_mount = testing.Mount(

@@ -13,9 +13,7 @@ from pydantic import (  # pylint: disable=no-name-in-module,import-error
     Field,
     StrictStr,
     ValidationError,
-    ValidationInfo,
 )
-from pydantic.functional_validators import field_validator
 
 logger = logging.getLogger(__name__)
 
@@ -57,17 +55,6 @@ class UEConfig(BaseModel):  # pylint: disable=too-few-public-methods
         min_length=32,
     )
     dnn: StrictStr = Field(default="internet", min_length=1)
-    sst: int = Field(ge=1, le=4)
-    sd: StrictStr = Field(default="0x102030")
-
-    @field_validator("sd", mode="before")
-    @classmethod
-    def validate_sd(cls, value: str, info: ValidationInfo) -> str:
-        """Make sure Slice Differentiator is valid."""
-        sd_int = int(value, 0)
-        if not 0 <= sd_int <= 16777215:
-            raise ValueError()
-        return value
 
 
 @dataclasses.dataclass
@@ -79,16 +66,12 @@ class CharmConfig:
         key: Secret Key for USIM
         opc: Secret Key for operator
         dnn: Data Network Name
-        sst: Slice Service Type
-        sd: Slice Differentiator
     """
 
     imsi: StrictStr
     key: StrictStr
     opc: StrictStr
     dnn: StrictStr
-    sst: int
-    sd: StrictStr
 
     def __init__(self, *, ue_config: UEConfig):
         """Initialize a new instance of the CharmConfig class.
@@ -100,8 +83,6 @@ class CharmConfig:
         self.key = ue_config.key
         self.opc = ue_config.opc
         self.dnn = ue_config.dnn
-        self.sst = ue_config.sst
-        self.sd = ue_config.sd
 
     @classmethod
     def from_charm(
