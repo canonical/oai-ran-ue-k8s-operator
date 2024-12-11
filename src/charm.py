@@ -142,7 +142,8 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
     def get_sd_as_hex(value: Optional[int]) -> str:
         """Convert the SD value to Hexadecimal if provided otherwise return default value."""
         if value is None:
-            return "0x102030"
+            # According to TS 23.003, no SD is defined as 0xffffff
+            return "0xffffff"
         return hex(value)
 
     def _on_start_simulation_action(self, event: ActionEvent) -> None:
