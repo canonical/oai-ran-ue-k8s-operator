@@ -140,7 +140,7 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
 
     @staticmethod
     def get_sd_as_hex(value: Optional[int]) -> str:
-        """Convert the SD value to Hexadecimal if provided otherwise return default value."""
+        """Return the SD in Hexadecimal."""
         if value is None:
             # According to TS 23.003, no SD is defined as 0xffffff
             return "0xffffff"
