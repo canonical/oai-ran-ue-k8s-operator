@@ -250,4 +250,3 @@ async def _deploy_du(ops_test: OpsTest):
         trust=True,
     )
     await ops_test.model.integrate(relation1=DU_CHARM_NAME, relation2=CU_CHARM_NAME)
-
