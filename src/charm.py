@@ -139,7 +139,7 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
         self._configure_pebble(restart=service_restart_required)
 
     @staticmethod
-    def get_sd_as_hex(value: str) -> str:
+    def get_sd_as_hex(value: Optional[int]) -> str:
         """Convert the SD value to Hexadecimal if provided otherwise return default value."""
         if value is None:
             return "0x102030"
@@ -177,7 +177,7 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
             key=self._charm_config.key,
             opc=self._charm_config.opc,
             dnn=self._charm_config.dnn,
-            sst=self.rfsim_requirer.sst,
+            sst=self.rfsim_requirer.sst,  # type: ignore[arg-type]
             sd=self.get_sd_as_hex(self.rfsim_requirer.sd),
         ).rstrip()
 
@@ -276,7 +276,9 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
                 "--log_config.global_log_options",
                 "level,nocolor,time",
                 "--rfsimulator.serveraddr",
-                str(self.rfsim_requirer.rfsim_address) if self.rfsim_requirer.rfsim_address else "",
+                str(self.rfsim_requirer.rfsim_address)
+                if self.rfsim_requirer.rfsim_address
+                else "",
             ]
         )
 
