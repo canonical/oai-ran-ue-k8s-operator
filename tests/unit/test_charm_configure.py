@@ -73,7 +73,7 @@ class TestCharmConfigure(UEFixtures):
             self.ctx.run(self.ctx.on.pebble_ready(container), state_in)
 
             with open(
-                "tests/unit/resources/expected_config_with_no_sd.conf"
+                "tests/unit/resources/expected_config_without_sd.conf"
             ) as expected_config_file:
                 expected_config = expected_config_file.read()
 
@@ -150,7 +150,7 @@ class TestCharmConfigure(UEFixtures):
                 model=testing.Model(name="whatever"),
             )
             with open(
-                "tests/unit/resources/expected_config_with_no_sd.conf"
+                "tests/unit/resources/expected_config_without_sd.conf"
             ) as expected_config_file:
                 expected_config = expected_config_file.read().strip()
 
@@ -194,7 +194,7 @@ class TestCharmConfigure(UEFixtures):
                 model=testing.Model(name="whatever"),
             )
             with open(
-                "tests/unit/resources/expected_config_with_no_sd.conf"
+                "tests/unit/resources/expected_config_without_sd.conf"
             ) as expected_config_file:
                 expected_config = expected_config_file.read().strip()
 
@@ -235,7 +235,7 @@ class TestCharmConfigure(UEFixtures):
                 model=testing.Model(name="whatever"),
             )
 
-            with open("tests/unit/resources/expected_config_with_no_sd.conf") as old_config_file:
+            with open("tests/unit/resources/expected_config_without_sd.conf") as old_config_file:
                 old_config = old_config_file.read().strip()
 
             with open(f"{temp_dir}/ue.conf", "w") as generated_config_file:
