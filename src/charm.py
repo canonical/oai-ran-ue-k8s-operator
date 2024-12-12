@@ -146,6 +146,13 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
             return "0xffffff"
         return hex(value)
 
+    def get_sst(self) -> int:
+        """Return the SST in int."""
+        sst = self.rfsim_requirer.sst
+        if sst is None:
+            raise ValueError("SST is not defined")
+        return sst
+
     def _on_start_simulation_action(self, event: ActionEvent) -> None:
         """Run network traffic simulation.
 
@@ -178,7 +185,7 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
             key=self._charm_config.key,
             opc=self._charm_config.opc,
             dnn=self._charm_config.dnn,
-            sst=self.rfsim_requirer.sst,  # type: ignore[arg-type]
+            sst=self.get_sst(),
             sd=self.get_sd_as_hex(self.rfsim_requirer.sd),
         ).rstrip()
 
