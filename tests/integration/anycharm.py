@@ -1,7 +1,7 @@
-from fiveg_core_gnb import FivegCoreGnbProvides, PLMNConfig
-from sdcore_config import SdcoreConfigProvides
-from any_charm_base import AnyCharmBase
+from any_charm_base import AnyCharmBase  # type: ignore[import]
+from fiveg_core_gnb import FivegCoreGnbProvides, PLMNConfig  # type: ignore[import]
 from ops.framework import EventBase, logger
+from sdcore_config import SdcoreConfigProvides  # type: ignore[import]
 
 SDCORE_CONFIG_RELATION_NAME = "provide-sdcore-config"
 CORE_GNB_RELATION_NAME = "provide-fiveg-core-gnb"
