@@ -10,7 +10,7 @@ import yaml
 from pytest_operator.plugin import OpsTest
 
 METADATA = yaml.safe_load(Path("./charmcraft.yaml").read_text())
-ANY_CHARM_PATH = "./tests/integration/anycharm.py"
+NMS_MOCK_CHARM_PATH = "./tests/integration/nms_mock_charm.py"
 APP_NAME = METADATA["name"]
 AMF_CHARM_NAME = "sdcore-amf-k8s"
 AMF_CHARM_CHANNEL = "1.6/edge"
@@ -173,7 +173,7 @@ async def _deploy_nms_mock(ops_test: OpsTest):
     any_charm_src_overwrite = {
         "fiveg_core_gnb.py": fiveg_core_gnb_lib,
         "sdcore_config.py": sdcore_config_lib,
-        "any_charm.py": Path(ANY_CHARM_PATH).read_text(),
+        "any_charm.py": Path(NMS_MOCK_CHARM_PATH).read_text(),
     }
     assert ops_test.model
     await ops_test.model.deploy(
