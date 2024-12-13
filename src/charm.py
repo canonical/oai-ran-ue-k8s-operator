@@ -60,9 +60,7 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
         self.framework.observe(self.on.update_status, self._configure)
         self.framework.observe(self.on.config_changed, self._configure)
         self.framework.observe(self.on.ue_pebble_ready, self._configure)
-        self.framework.observe(
-            self.rfsim_requirer.on.fiveg_rfsim_provider_available, self._configure
-        )
+        self.framework.observe(self.on[RFSIM_RELATION_NAME].relation_changed, self._configure)
         self.framework.observe(self.on.start_simulation_action, self._on_start_simulation_action)
 
     def _on_collect_unit_status(self, event: CollectStatusEvent):
@@ -102,15 +100,15 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
             event.add_status(BlockedStatus("Waiting for fiveg_rfsim relation to be created"))
             logger.info("Waiting for fiveg_rfsim relation to be created")
             return
-        if not self.rfsim_requirer.rfsim_address:
-            event.add_status(WaitingStatus("Waiting for RFSIM information"))
-            logger.info("Waiting for RFSIM information")
-            return
-        self.unit.set_workload_version(self._get_workload_version())
         if not self._container.exists(path=BASE_CONFIG_PATH):
             event.add_status(WaitingStatus("Waiting for storage to be attached"))
             logger.info("Waiting for storage to be attached")
             return
+        if not (self.rfsim_requirer.rfsim_address and self.rfsim_requirer.sst):
+            event.add_status(WaitingStatus("Waiting for RFSIM information"))
+            logger.info("Waiting for RFSIM information")
+            return
+        self.unit.set_workload_version(self._get_workload_version())
         event.add_status(ActiveStatus())
 
     def _configure(self, _) -> None:
@@ -126,17 +124,34 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
             return
         if not self._k8s_privileged.is_patched(container_name=self._container_name):
             self._k8s_privileged.patch_statefulset(container_name=self._container_name)
-        if not self._container.exists(path=BASE_CONFIG_PATH):
-            return
         if not self._relation_created(RFSIM_RELATION_NAME):
             return
+        if not self._container.exists(path=BASE_CONFIG_PATH):
+            return
         if not self.rfsim_requirer.rfsim_address:
+            return
+        if not self.rfsim_requirer.sst:
             return
 
         ue_config = self._generate_ue_config()
         if service_restart_required := self._is_ue_config_up_to_date(ue_config):
             self._write_config_file(content=ue_config)
         self._configure_pebble(restart=service_restart_required)
+
+    @staticmethod
+    def get_sd_as_hex(value: Optional[int]) -> str:
+        """Return the SD in Hexadecimal."""
+        if value is None:
+            # According to TS 23.003, no SD is defined as 0xffffff
+            return "0xffffff"
+        return hex(value)
+
+    def get_sst(self) -> int:
+        """Return the SST in int."""
+        sst = self.rfsim_requirer.sst
+        if sst is None:
+            raise ValueError("SST is not defined")
+        return sst
 
     def _on_start_simulation_action(self, event: ActionEvent) -> None:
         """Run network traffic simulation.
@@ -170,8 +185,8 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
             key=self._charm_config.key,
             opc=self._charm_config.opc,
             dnn=self._charm_config.dnn,
-            sst=self._charm_config.sst,
-            sd=self._charm_config.sd,
+            sst=self.get_sst(),
+            sd=self.get_sd_as_hex(self.rfsim_requirer.sd),
         ).rstrip()
 
     def _is_ue_config_up_to_date(self, content: str) -> bool:
@@ -269,7 +284,9 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
                 "--log_config.global_log_options",
                 "level,nocolor,time",
                 "--rfsimulator.serveraddr",
-                self.rfsim_requirer.rfsim_address if self.rfsim_requirer.rfsim_address else "",
+                str(self.rfsim_requirer.rfsim_address)
+                if self.rfsim_requirer.rfsim_address
+                else "",
             ]
         )
 

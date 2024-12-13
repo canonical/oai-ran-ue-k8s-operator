@@ -1,28 +1,29 @@
 #!/usr/bin/env python3
 # Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
-
+import json
 from pathlib import Path
 
 import pytest
+import requests
 import yaml
 from pytest_operator.plugin import OpsTest
 
 METADATA = yaml.safe_load(Path("./charmcraft.yaml").read_text())
+NMS_MOCK_CHARM_PATH = "./tests/integration/nms_mock_charm.py"
 APP_NAME = METADATA["name"]
 AMF_CHARM_NAME = "sdcore-amf-k8s"
-AMF_CHARM_CHANNEL = "1.5/edge"
+AMF_CHARM_CHANNEL = "1.6/edge"
 DB_CHARM_NAME = "mongodb-k8s"
-DB_CHARM_CHANNEL = "6/edge"
+DB_CHARM_CHANNEL = "6/stable"
 GRAFANA_AGENT_CHARM_NAME = "grafana-agent-k8s"
 NRF_CHARM_NAME = "sdcore-nrf-k8s"
-NRF_CHARM_CHANNEL = "1.5/edge"
+NRF_CHARM_CHANNEL = "1.6/edge"
 CU_CHARM_NAME = "oai-ran-cu-k8s"
 CU_CHARM_CHANNEL = "2.1/edge"
 DU_CHARM_NAME = "oai-ran-du-k8s"
 DU_CHARM_CHANNEL = "2.1/edge"
-NMS_CHARM_NAME = "sdcore-nms-k8s"
-NMS_CHARM_CHANNEL = "1.5/edge"
+NMS_MOCK = "nms-mock"
 TLS_CHARM_NAME = "self-signed-certificates"
 TLS_CHARM_CHANNEL = "latest/stable"
 TIMEOUT = 5 * 60
@@ -102,7 +103,7 @@ async def deploy_dependencies(ops_test: OpsTest):
     assert ops_test.model
     await _deploy_mongodb(ops_test)
     await _deploy_tls_provider(ops_test)
-    await _deploy_webui(ops_test)
+    await _deploy_nms_mock(ops_test)
     await _deploy_nrf(ops_test)
     await _deploy_amf(ops_test)
     await _deploy_grafana_agent(ops_test)
@@ -119,7 +120,7 @@ async def _deploy_amf(ops_test: OpsTest):
         trust=True,
     )
     await ops_test.model.integrate(relation1=AMF_CHARM_NAME, relation2=NRF_CHARM_NAME)
-    await ops_test.model.integrate(relation1=AMF_CHARM_NAME, relation2=NMS_CHARM_NAME)
+    await ops_test.model.integrate(relation1=f"{AMF_CHARM_NAME}:sdcore_config", relation2=NMS_MOCK)
     await ops_test.model.integrate(relation1=AMF_CHARM_NAME, relation2=TLS_CHARM_NAME)
 
 
@@ -161,21 +162,28 @@ async def _deploy_nrf(ops_test: OpsTest):
     )
     await ops_test.model.integrate(relation1=NRF_CHARM_NAME, relation2=DB_CHARM_NAME)
     await ops_test.model.integrate(relation1=NRF_CHARM_NAME, relation2=TLS_CHARM_NAME)
-    await ops_test.model.integrate(relation1=NRF_CHARM_NAME, relation2=NMS_CHARM_NAME)
+    await ops_test.model.integrate(relation1=f"{NRF_CHARM_NAME}:sdcore_config", relation2=NMS_MOCK)
 
 
-async def _deploy_webui(ops_test: OpsTest):
+async def _deploy_nms_mock(ops_test: OpsTest):
+    fiveg_core_gnb_lib_url = "https://github.com/canonical/sdcore-nms-k8s-operator/raw/main/lib/charms/sdcore_nms_k8s/v0/fiveg_core_gnb.py"
+    fiveg_core_gnb_lib = requests.get(fiveg_core_gnb_lib_url, timeout=10).text
+    sdcore_config_lib_url = "https://github.com/canonical/sdcore-nms-k8s-operator/raw/main/lib/charms/sdcore_nms_k8s/v0/sdcore_config.py"
+    sdcore_config_lib = requests.get(sdcore_config_lib_url, timeout=10).text
+    any_charm_src_overwrite = {
+        "fiveg_core_gnb.py": fiveg_core_gnb_lib,
+        "sdcore_config.py": sdcore_config_lib,
+        "any_charm.py": Path(NMS_MOCK_CHARM_PATH).read_text(),
+    }
     assert ops_test.model
     await ops_test.model.deploy(
-        NMS_CHARM_NAME,
-        application_name=NMS_CHARM_NAME,
-        channel=NMS_CHARM_CHANNEL,
-    )
-    await ops_test.model.integrate(
-        relation1=f"{NMS_CHARM_NAME}:common_database", relation2=f"{DB_CHARM_NAME}"
-    )
-    await ops_test.model.integrate(
-        relation1=f"{NMS_CHARM_NAME}:auth_database", relation2=f"{DB_CHARM_NAME}"
+        "any-charm",
+        application_name=NMS_MOCK,
+        channel="beta",
+        config={
+            "src-overwrite": json.dumps(any_charm_src_overwrite),
+            "python-packages": "pytest-interface-tester",
+        },
     )
 
 
@@ -188,6 +196,7 @@ async def _deploy_cu(ops_test: OpsTest):
         trust=True,
     )
     await ops_test.model.integrate(relation1=CU_CHARM_NAME, relation2=AMF_CHARM_NAME)
+    await ops_test.model.integrate(relation1=f"{CU_CHARM_NAME}:fiveg_core_gnb", relation2=NMS_MOCK)
 
 
 async def _deploy_du(ops_test: OpsTest):

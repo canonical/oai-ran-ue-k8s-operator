@@ -59,16 +59,6 @@ config:
       type: string
       default: "internet"
       description: Data Network Name
-    sst:
-      type: int
-      default: 1
-      description: Slice Service Type
-    sd:
-      type: string
-      default: "0x102030"
-      description: |
-        Slice Differentiator
-        It needs to be a number between 0 and 16777215 or its hex representation. Hex value needs to be prefixed with `0x`.
 
 actions:
   start-simulation:

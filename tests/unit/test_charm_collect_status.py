@@ -34,10 +34,6 @@ class TestCharmCollectStatus(UEFixtures):
             pytest.param("opc", "123abc", id="too_short_opc"),
             pytest.param("opc", "123abc123abc123abc123abc123abc123abc123abc", id="too_long_opc"),
             pytest.param("dnn", "", id="empty_dnn"),
-            pytest.param("sst", int(), id="empty_sst"),
-            pytest.param("sd", "", id="empty_sd"),
-            pytest.param("sd", "0xfffffff", id="hex_sd_out_or_range"),
-            pytest.param("sd", "123123123", id="sd_out_or_range"),
         ],
     )
     def test_given_invalid_config_when_collect_status_then_status_is_blocked(
@@ -91,6 +87,38 @@ class TestCharmCollectStatus(UEFixtures):
                 endpoint="fiveg_rfsim",
                 interface="fiveg_rfsim",
                 remote_app_data={},
+            )
+            config_mount = testing.Mount(
+                source=temp_dir,
+                location="/tmp/conf",
+            )
+            container = testing.Container(
+                name="ue",
+                can_connect=True,
+                mounts={"config": config_mount},
+            )
+            state_in = testing.State(
+                leader=True,
+                relations=[rfsim_relation],
+                containers=[container],
+            )
+
+            state_out = self.ctx.run(self.ctx.on.collect_unit_status(), state_in)
+
+            assert state_out.unit_status == WaitingStatus("Waiting for RFSIM information")
+
+    def test_given_fiveg_rfsim_relation_created_rfsim_address_is_available_but_sst_is_not_available_when_collect_unit_status_then_status_is_waiting(  # noqa: E501
+        self,
+    ):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            self.mock_k8s_privileged.is_patched.return_value = True
+            self.mock_check_output.return_value = b"1.1.1.1"
+            rfsim_relation = testing.Relation(
+                endpoint="fiveg_rfsim",
+                interface="fiveg_rfsim",
+                remote_app_data={
+                    "rfsim_address": "1.1.1.1",
+                },
             )
             config_mount = testing.Mount(
                 source=temp_dir,
@@ -168,6 +196,7 @@ class TestCharmCollectStatus(UEFixtures):
             interface="fiveg_rfsim",
             remote_app_data={
                 "rfsim_address": "1.1.1.1",
+                "sst": "1",
             },
         )
         container = testing.Container(
@@ -192,6 +221,7 @@ class TestCharmCollectStatus(UEFixtures):
                 interface="fiveg_rfsim",
                 remote_app_data={
                     "rfsim_address": "1.1.1.1",
+                    "sst": "1",
                 },
             )
             config_mount = testing.Mount(
