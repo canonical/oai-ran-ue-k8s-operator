@@ -61,7 +61,7 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
         self.framework.observe(self.on.config_changed, self._configure)
         self.framework.observe(self.on.ue_pebble_ready, self._configure)
         self.framework.observe(self.on[RFSIM_RELATION_NAME].relation_changed, self._configure)
-        self.framework.observe(self.on.start_simulation_action, self._on_start_simulation_action)
+        self.framework.observe(self.on.ping_action, self._on_ping_action)
 
     def _on_collect_unit_status(self, event: CollectStatusEvent):
         """Check the unit status and set to Unit when CollectStatusEvent is fired.
@@ -153,7 +153,7 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
             raise ValueError("SST is not defined")
         return sst
 
-    def _on_start_simulation_action(self, event: ActionEvent) -> None:
+    def _on_ping_action(self, event: ActionEvent) -> None:
         """Run network traffic simulation.
 
         The action tries to ping `8.8.8.8` using the UE interface (oaitun_ue1). Working ping
@@ -255,38 +255,55 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
                     self._service_name: {
                         "override": "replace",
                         "startup": "enabled",
-                        "command": self._ue_startup_command,
+                        "command": self._get_ue_startup_command(),
                         "environment": self._ue_environment_variables,
                     },
                 },
             }
         )
 
-    @property
-    def _ue_startup_command(self) -> str:
+    def _get_ue_startup_command(self) -> str:
+        if self._charm_config.rfsim:
+            return " ".join(
+                [
+                    "/opt/oai-gnb/bin/nr-uesoftmodem",
+                    "-O",
+                    f"{BASE_CONFIG_PATH}/{CONFIG_FILE_NAME}",
+                    "--sa",
+                    "--rfsim",
+                    "-r",
+                    "106",
+                    "--numerology",
+                    "1",
+                    "-C",
+                    "3924060000",
+                    "--ssb",
+                    "530",
+                    "--band",
+                    "77",
+                    "--log_config.global_log_options",
+                    "level,nocolor,time",
+                    "--rfsimulator.serveraddr",
+                    str(self.rfsim_requirer.rfsim_address)
+                    if self.rfsim_requirer.rfsim_address
+                    else "",
+                ]
+            )
         return " ".join(
             [
                 "/opt/oai-gnb/bin/nr-uesoftmodem",
                 "-O",
                 f"{BASE_CONFIG_PATH}/{CONFIG_FILE_NAME}",
-                "--sa",
-                "--rfsim",
                 "-r",
                 "106",
                 "--numerology",
                 "1",
-                "-C",
-                "3924060000",
-                "--ssb",
-                "530",
                 "--band",
                 "77",
-                "--log_config.global_log_options",
-                "level,nocolor,time",
-                "--rfsimulator.serveraddr",
-                str(self.rfsim_requirer.rfsim_address)
-                if self.rfsim_requirer.rfsim_address
-                else "",
+                "-C",
+                "3924060000",
+                "--ue-fo-compensation",
+                "-E",
             ]
         )
 

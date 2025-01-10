@@ -55,6 +55,7 @@ class UEConfig(BaseModel):  # pylint: disable=too-few-public-methods
         min_length=32,
     )
     dnn: StrictStr = Field(default="internet", min_length=1)
+    rfsim: bool = Field(default=True)
 
 
 @dataclasses.dataclass
@@ -66,12 +67,14 @@ class CharmConfig:
         key: Secret Key for USIM
         opc: Secret Key for operator
         dnn: Data Network Name
+        rfsim: Flag to enable RF simulation
     """
 
     imsi: StrictStr
     key: StrictStr
     opc: StrictStr
     dnn: StrictStr
+    rfsim: bool
 
     def __init__(self, *, ue_config: UEConfig):
         """Initialize a new instance of the CharmConfig class.
@@ -83,6 +86,7 @@ class CharmConfig:
         self.key = ue_config.key
         self.opc = ue_config.opc
         self.dnn = ue_config.dnn
+        self.rfsim = ue_config.rfsim
 
     @classmethod
     def from_charm(
