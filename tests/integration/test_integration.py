@@ -30,14 +30,14 @@ TIMEOUT = 5 * 60
 
 
 @pytest.mark.abort_on_fail
-async def test_deploy_charm_and_wait_for_blocked_status(
+async def test_deploy_charm_and_wait_for_active_status(
     ops_test: OpsTest,
     deploy_charm_under_test,
 ):
     assert ops_test.model
     await ops_test.model.wait_for_idle(
         apps=[APP_NAME],
-        status="blocked",
+        status="active",
         timeout=TIMEOUT,
     )
 
