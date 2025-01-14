@@ -59,14 +59,14 @@ config:
       type: string
       default: "internet"
       description: Data Network Name
-    simulation-mode:
-      type: boolean
-      default: true
-      description: |
-        The RF simulator mode allows to test OAI without an RF board. 
-        Options:
-          - true: In this mode, the DU should be configured with the `simulation-mode` configuration option set to True. The UE should run in the same host as the gNB.
-          - false: The UE should be connected to a USRP device. The UE should 
+    sst:
+      type: int
+      default: 1
+      description: Slice/Service Type. This value is ignored when the `fiveg_rfsim` is used as the SST will be taken from the relation data.
+    sd:
+      type: int
+      default: 1056816
+      description: Slice/Service Definition in decimal representation. This value will be transformed into into its hexadecimal representation (1056816 -> `0x102030`). This value is ignored when the `fiveg_rfsim` is used as the SD will be taken from the relation data.
 
 actions:
   ping:

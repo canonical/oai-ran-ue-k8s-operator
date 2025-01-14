@@ -19,6 +19,7 @@ class TestCharmConfigure(UEFixtures):
     ):
         with tempfile.TemporaryDirectory() as tmpdir:
             self.mock_k8s_privileged.is_patched.return_value = False
+            self.mock_k8s_usb_volume.is_mounted.return_value = False
             self.mock_check_output.return_value = b"1.2.3.4"
             config_mount = testing.Mount(
                 location="/tmp/conf",
@@ -44,6 +45,7 @@ class TestCharmConfigure(UEFixtures):
     ):
         with tempfile.TemporaryDirectory() as temp_dir:
             self.mock_check_output.return_value = b"1.2.3.4"
+            self.mock_k8s_usb_volume.is_mounted.return_value = False
             rfsim_relation = testing.Relation(
                 endpoint="fiveg_rfsim",
                 interface="fiveg_rfsim",
@@ -86,6 +88,7 @@ class TestCharmConfigure(UEFixtures):
         self,
     ):
         with tempfile.TemporaryDirectory() as temp_dir:
+            self.mock_k8s_usb_volume.is_mounted.return_value = False
             self.mock_check_output.return_value = b"1.2.3.4"
             rfsim_relation = testing.Relation(
                 endpoint="fiveg_rfsim",
@@ -123,6 +126,7 @@ class TestCharmConfigure(UEFixtures):
         self,
     ):
         with tempfile.TemporaryDirectory() as temp_dir:
+            self.mock_k8s_usb_volume.is_mounted.return_value = False
             self.mock_check_output.return_value = b"1.2.3.4"
             rfsim_relation = testing.Relation(
                 endpoint="fiveg_rfsim",
@@ -167,6 +171,7 @@ class TestCharmConfigure(UEFixtures):
         self,
     ):
         with tempfile.TemporaryDirectory() as temp_dir:
+            self.mock_k8s_usb_volume.is_mounted.return_value = False
             self.mock_check_output.return_value = b"1.2.3.4"
             rfsim_relation = testing.Relation(
                 endpoint="fiveg_rfsim",
@@ -211,6 +216,7 @@ class TestCharmConfigure(UEFixtures):
         self,
     ):
         with tempfile.TemporaryDirectory() as temp_dir:
+            self.mock_k8s_usb_volume.is_mounted.return_value = False
             self.mock_check_output.return_value = b"1.2.3.4"
             rfsim_relation = testing.Relation(
                 endpoint="fiveg_rfsim",
@@ -259,6 +265,7 @@ class TestCharmConfigure(UEFixtures):
         self,
     ):
         with tempfile.TemporaryDirectory() as temp_dir:
+            self.mock_k8s_usb_volume.is_mounted.return_value = False
             self.mock_check_output.return_value = b"1.2.3.4"
             rfsim_relation = testing.Relation(
                 endpoint="fiveg_rfsim",

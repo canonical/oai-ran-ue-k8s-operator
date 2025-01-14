@@ -12,7 +12,7 @@ from ops.testing import ActionFailed
 from tests.unit.fixtures import UEFixtures
 
 
-class TestCharmSimulationAction(UEFixtures):
+class TestCharmPingAction(UEFixtures):
     def test_given_ue_container_not_available_when_ping_action_then_action_status_is_failed(  # noqa: E501
         self,
     ):
