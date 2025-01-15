@@ -327,6 +327,8 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
                 "-C",
                 "3924060000",
                 "-E",
+                "--log_config.global_log_options",
+                "level,nocolor,time",
             ]
         )
 
