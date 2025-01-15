@@ -146,13 +146,13 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
             return
         if not self._container.exists(path=BASE_CONFIG_PATH):
             return
-        rfsim = False
-        if (
-            self._relation_created(relation_name=RFSIM_RELATION_NAME)
-            and self.rfsim_requirer.rfsim_address
-            and self.rfsim_requirer.sst
-        ):
-            rfsim = True
+        rfsim = all(
+            [
+                self._relation_created(relation_name=RFSIM_RELATION_NAME),
+                self.rfsim_requirer.rfsim_address != "",
+                self.rfsim_requirer.sst != 0,
+            ]
+        )
 
         ue_config = self._generate_ue_config()
         if service_restart_required := self._is_ue_config_up_to_date(ue_config):
@@ -166,6 +166,18 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
             # According to TS 23.003, no SD is defined as 0xffffff
             return "0xffffff"
         return hex(value)
+
+    def _get_sst(self) -> Optional[int]:
+        if self._relation_created(RFSIM_RELATION_NAME):
+            return self.rfsim_requirer.sst
+        else:
+            return self._charm_config.sst
+
+    def _get_sd(self) -> Optional[int]:
+        if self._relation_created(RFSIM_RELATION_NAME):
+            return self.rfsim_requirer.sd
+        else:
+            return self._charm_config.sd
 
     def _on_ping_action(self, event: ActionEvent) -> None:
         """Run network traffic simulation.
@@ -194,12 +206,11 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
             event.fail(message=f"Failed to execute simulation: {str(e.stdout)}")
 
     def _generate_ue_config(self) -> str:
-        if self._relation_created(RFSIM_RELATION_NAME):
-            sst = self.rfsim_requirer.sst if self.rfsim_requirer.sst else 1
-            sd = self.rfsim_requirer.sd
-        else:
-            sst = self._charm_config.sst
-            sd = self._charm_config.sd
+        sst = self._get_sst()
+        sd = self._get_sd()
+        if not sst:
+            logger.error("SST is not available")
+            return ""
         return _render_config_file(
             imsi=self._charm_config.imsi,
             key=self._charm_config.key,
