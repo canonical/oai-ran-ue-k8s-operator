@@ -243,4 +243,31 @@ class K8sUSBVolume:
             self.k8s_client.replace(obj=statefulset)
         except ApiError:
             raise K8sError(f"Could not replace statefulset `{self.statefulset_name}`")
-        logger.info("Replaced `%s` statefulset", self.statefulset_name)
+        logger.info("Mounted USB volume to `%s` statefulset", self.statefulset_name)
+
+    def unmount(self) -> None:
+        """Unmount USB volume."""
+        try:
+            statefulset = self.k8s_client.get(
+                res=StatefulSet, name=self.statefulset_name, namespace=self.namespace
+            )
+        except ApiError:
+            raise K8sError(f"Could not get statefulset `{self.statefulset_name}`")
+
+        containers: Iterable[Container] = statefulset.spec.template.spec.containers  # type: ignore[union-attr]
+        container = self._get_container(container_name=self.container_name, containers=containers)
+        container.volumeMounts = [
+            vm
+            for vm in container.volumeMounts  # type: ignore[union-attr]
+            if vm.name != self.usb_volumemount.name
+        ]
+        statefulset.spec.template.spec.volumes = [  # type: ignore[union-attr]
+            v
+            for v in statefulset.spec.template.spec.volumes  # type: ignore[union-attr]
+            if v.name != self.usb_volume.name
+        ]
+        try:
+            self.k8s_client.replace(obj=statefulset)
+        except ApiError:
+            raise K8sError(f"Could not replace statefulset `{self.statefulset_name}`")
+        logger.info("Unmounted USB volume from `%s` statefulset", self.statefulset_name)

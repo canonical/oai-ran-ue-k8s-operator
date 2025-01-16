@@ -140,6 +140,8 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
             and not self._k8s_usb_volume.is_mounted()
         ):
             self._k8s_usb_volume.mount()
+        if self._relation_created(RFSIM_RELATION_NAME) and self._k8s_usb_volume.is_mounted():
+            self._k8s_usb_volume.unmount()
         if self._relation_created(relation_name=RFSIM_RELATION_NAME) and (
             not self.rfsim_requirer.rfsim_address or not self.rfsim_requirer.sst
         ):
