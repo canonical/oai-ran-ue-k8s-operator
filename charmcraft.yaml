@@ -59,12 +59,17 @@ config:
       type: string
       default: "internet"
       description: Data Network Name
+    sst:
+      type: int
+      description: Slice/Service Type. This value is ignored when the `fiveg_rfsim` is used as the SST will be taken from the relation data.
+    sd:
+      type: int
+      description: Slice/Service Definition in decimal representation. This value will be transformed into into its hexadecimal representation (1056816 -> `0x102030`). This value is ignored when the `fiveg_rfsim` is used as the SD will be taken from the relation data.
 
 actions:
-  start-simulation:
+  ping:
     description: |
-      Starts the network traffic simulation.
-      This action runs a `ping` against 8.8.8.8 (Google DNS) to make sure all the network components work correctly. 
+      Run a `ping` against 8.8.8.8 (Google DNS). Use this action to validate that the UE is able to reach the internet.
 
 parts:
   charm:

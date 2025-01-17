@@ -13,11 +13,13 @@ from charm import OaiRanUeK8SOperatorCharm
 class UEFixtures:
     patcher_check_output = patch("charm.check_output")
     patcher_k8s_privileged = patch("charm.K8sPrivileged")
+    patcher_k8s_usb_volume = patch("charm.K8sUSBVolume")
 
     @pytest.fixture(autouse=True)
     def setUp(self, request):
         self.mock_check_output = UEFixtures.patcher_check_output.start()
         self.mock_k8s_privileged = UEFixtures.patcher_k8s_privileged.start().return_value
+        self.mock_k8s_usb_volume = UEFixtures.patcher_k8s_usb_volume.start().return_value
         yield
         request.addfinalizer(self.tearDown)
 

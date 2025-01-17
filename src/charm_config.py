@@ -6,6 +6,7 @@
 
 import dataclasses
 import logging
+from typing import Optional
 
 import ops
 from pydantic import (  # pylint: disable=no-name-in-module,import-error
@@ -55,6 +56,20 @@ class UEConfig(BaseModel):  # pylint: disable=too-few-public-methods
         min_length=32,
     )
     dnn: StrictStr = Field(default="internet", min_length=1)
+    sst: int = Field(
+        description="Slice/Service Type",
+        examples=[1, 2, 3, 4],
+        ge=0,
+        le=255,
+        default=1,
+    )
+    sd: Optional[int] = Field(
+        description="Slice Differentiator",
+        default=None,
+        examples=[1],
+        ge=0,
+        le=16777215,
+    )
 
 
 @dataclasses.dataclass
@@ -66,12 +81,16 @@ class CharmConfig:
         key: Secret Key for USIM
         opc: Secret Key for operator
         dnn: Data Network Name
+        sst: Slice/Service Type
+        sd: Slice Differentiator
     """
 
     imsi: StrictStr
     key: StrictStr
     opc: StrictStr
     dnn: StrictStr
+    sst: int
+    sd: Optional[int]
 
     def __init__(self, *, ue_config: UEConfig):
         """Initialize a new instance of the CharmConfig class.
@@ -83,6 +102,8 @@ class CharmConfig:
         self.key = ue_config.key
         self.opc = ue_config.opc
         self.dnn = ue_config.dnn
+        self.sst = ue_config.sst
+        self.sd = ue_config.sd
 
     @classmethod
     def from_charm(

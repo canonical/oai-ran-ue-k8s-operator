@@ -12,8 +12,8 @@ from ops.testing import ActionFailed
 from tests.unit.fixtures import UEFixtures
 
 
-class TestCharmSimulationAction(UEFixtures):
-    def test_given_ue_container_not_available_when_start_simulation_action_then_action_status_is_failed(  # noqa: E501
+class TestCharmPingAction(UEFixtures):
+    def test_given_ue_container_not_available_when_ping_action_then_action_status_is_failed(  # noqa: E501
         self,
     ):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -44,11 +44,11 @@ class TestCharmSimulationAction(UEFixtures):
             )
 
             with pytest.raises(ActionFailed) as exc_info:
-                self.ctx.run(self.ctx.on.action("start-simulation"), state_in)
+                self.ctx.run(self.ctx.on.action("ping"), state_in)
 
             assert exc_info.value.message == "Container is not ready"
 
-    def test_given_ue_service_not_ready_when_start_simulation_action_then_action_status_is_failed(  # noqa: E501
+    def test_given_ue_service_not_ready_when_ping_action_then_action_status_is_failed(  # noqa: E501
         self,
     ):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -79,11 +79,11 @@ class TestCharmSimulationAction(UEFixtures):
             )
 
             with pytest.raises(ActionFailed) as exc_info:
-                self.ctx.run(self.ctx.on.action("start-simulation"), state_in)
+                self.ctx.run(self.ctx.on.action("ping"), state_in)
 
             assert exc_info.value.message == "UE service is not ready"
 
-    def test_given_ping_transmits_packets_correctly_when_start_simulation_action_then_action_status_is_successful(  # noqa: E501
+    def test_given_ping_transmits_packets_correctly_when_ping_action_then_action_status_is_successful(  # noqa: E501
         self,
     ):
         test_successful_stdout = "10 packets transmitted, 10 received, 0% packet loss, time 9012ms"
@@ -124,12 +124,12 @@ class TestCharmSimulationAction(UEFixtures):
                 containers=[container],
             )
 
-            self.ctx.run(self.ctx.on.action("start-simulation"), state_in)
+            self.ctx.run(self.ctx.on.action("ping"), state_in)
 
             assert self.ctx.action_results
             assert self.ctx.action_results["result"] == test_successful_stdout
 
-    def test_given_ping_doesnt_transmit_packets_correctly_when_start_simulation_action_then_action_status_is_failed(  # noqa: E501
+    def test_given_ping_doesnt_transmit_packets_correctly_when_ping_action_then_action_status_is_failed(  # noqa: E501
         self,
     ):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -170,6 +170,6 @@ class TestCharmSimulationAction(UEFixtures):
             )
 
             with pytest.raises(ActionFailed) as exc_info:
-                self.ctx.run(self.ctx.on.action("start-simulation"), state_in)
+                self.ctx.run(self.ctx.on.action("ping"), state_in)
 
             assert "Failed to execute simulation:" in exc_info.value.message
