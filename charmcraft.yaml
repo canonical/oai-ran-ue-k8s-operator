@@ -2,13 +2,11 @@ type: charm
 name: oai-ran-ue-k8s
 summary: Charmed Operator for the OAI RAN User Equipment (UE).
 description: Charmed Operator for the OAI RAN User Equipment (UE).
-bases:
-  - build-on:
-      - name: ubuntu
-        channel: "22.04"
-    run-on:
-      - name: ubuntu
-        channel: "22.04"
+base: ubuntu@24.04
+build-base: ubuntu@24.04
+platforms:
+  amd64:
+
 links:
   website:
     - https://charmhub.io/oai-ran-ue-k8s
@@ -33,7 +31,7 @@ resources:
   ue-image:
     type: oci-image
     description: Container image for the OAI RAN User Equipment (UE).
-    upstream-source: ghcr.io/canonical/oai-ran-ue:2.1.1
+    upstream-source: ghcr.io/canonical/oai-ran-ue:2.2.0
 
 requires:
   fiveg_rfsim:
