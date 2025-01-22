@@ -55,6 +55,6 @@ jobs:
     if: ${{ github.ref_name == 'main' }}
     uses: canonical/sdcore-github-workflows/.github/workflows/publish-charm.yaml@v2.3.1
     with:
-      track-name: 2.1
+      track-name: 2.2
     secrets:
       CHARMCRAFT_AUTH: ${{ secrets.CHARMCRAFT_AUTH }}
