@@ -6,12 +6,9 @@ output "app_name" {
   value       = juju_application.ue.name
 }
 
-output "fiveg_rfsim_endpoint" {
-  description = "Name of the endpoint used to integrate with the rfsim provider."
-  value       = "fiveg_rfsim"
-}
-
-output "logging_endpoint" {
-  description = "Name of the endpoint used to integrate with the Logging provider."
-  value       = "logging"
+output "requires" {
+  value = {
+    "fiveg_rfsim" = "fiveg_rfsim"
+    "logging"     = "logging"
+  }
 }

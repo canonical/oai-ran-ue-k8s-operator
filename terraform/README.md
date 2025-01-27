@@ -17,7 +17,7 @@ rather serve as a building block for higher level modules.
 - **output.tf** - Responsible for integrating the module with other Terraform modules, primarily
   by defining potential integration endpoints (charm integrations), but also by exposing
   the application name.
-- **terraform.tf** - Defines the Terraform provider.
+- **versions.tf** - Defines the Terraform provider.
 
 ## Using oai-ran-ue-k8s base module in higher level modules
 
@@ -28,7 +28,7 @@ like shown below:
 module "ue" {
   source = "git::https://github.com/canonical/oai-ran-ue-k8s-operator//terraform"
 
-  model_name = "juju_model_name"
+  model  = "juju_model_name"
   config = Optional config map
 }
 ```
@@ -37,10 +37,10 @@ Create integrations, for instance:
 
 ```text
 resource "juju_integration" "oaiue-loki" {
-  model = var.model_name
+  model = var.model
   application {
     name     = module.ue.app_name
-    endpoint = module.ue.logging_endpoint
+    endpoint = module.ue.requires.logging
   }
   application {
     offer_url = juju_offer.loki-logging.url
