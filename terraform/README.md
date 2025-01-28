@@ -24,7 +24,7 @@ rather serve as a building block for higher level modules.
 If you want to use `oai-ran-ue-k8s` base module as part of your Terraform module, import it
 like shown below:
 
-```text
+```hcl
 module "ue" {
   source = "git::https://github.com/canonical/oai-ran-ue-k8s-operator//terraform"
 
@@ -35,7 +35,7 @@ module "ue" {
 
 Create integrations, for instance:
 
-```text
+```hcl
 resource "juju_integration" "oaiue-loki" {
   model = var.model
   application {
