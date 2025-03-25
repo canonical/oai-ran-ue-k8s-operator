@@ -5,6 +5,7 @@
 import tempfile
 
 import pytest
+from charms.oai_ran_du_k8s.v0.fiveg_rfsim import LIBAPI
 from ops import testing
 from ops.pebble import Layer, ServiceStatus
 from ops.testing import ActionFailed
@@ -13,19 +14,9 @@ from tests.unit.fixtures import UEFixtures
 
 
 class TestCharmPingAction(UEFixtures):
-    def test_given_ue_container_not_available_when_ping_action_then_action_status_is_failed(  # noqa: E501
-        self,
-    ):
+    def test_given_ue_container_not_available_when_ping_action_then_action_status_is_failed(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             self.mock_check_output.return_value = b"1.2.3.4"
-            rfsim_relation = testing.Relation(
-                endpoint="fiveg_rfsim",
-                interface="fiveg_rfsim",
-                remote_app_data={
-                    "rfsim_address": "1.1.1.1",
-                    "sst": "1",
-                },
-            )
             config_mount = testing.Mount(
                 source=temp_dir,
                 location="/tmp/conf",
@@ -39,7 +30,6 @@ class TestCharmPingAction(UEFixtures):
             )
             state_in = testing.State(
                 leader=True,
-                relations=[rfsim_relation],
                 containers=[container],
             )
 
@@ -48,17 +38,20 @@ class TestCharmPingAction(UEFixtures):
 
             assert exc_info.value.message == "Container is not ready"
 
-    def test_given_ue_service_not_ready_when_ping_action_then_action_status_is_failed(  # noqa: E501
-        self,
-    ):
+    def test_given_ue_service_not_ready_when_ping_action_then_action_status_is_failed(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             self.mock_check_output.return_value = b"1.2.3.4"
             rfsim_relation = testing.Relation(
                 endpoint="fiveg_rfsim",
                 interface="fiveg_rfsim",
                 remote_app_data={
-                    "rfsim_address": "1.1.1.1",
+                    "version": str(LIBAPI),
                     "sst": "1",
+                    "band": "77",
+                    "dl_freq": "3924060000",
+                    "carrier_bandwidth": "106",
+                    "numerology": "1",
+                    "start_subcarrier": "529",
                 },
             )
             config_mount = testing.Mount(
@@ -93,8 +86,13 @@ class TestCharmPingAction(UEFixtures):
                 endpoint="fiveg_rfsim",
                 interface="fiveg_rfsim",
                 remote_app_data={
-                    "rfsim_address": "1.1.1.1",
+                    "version": str(LIBAPI),
                     "sst": "1",
+                    "band": "77",
+                    "dl_freq": "3924060000",
+                    "carrier_bandwidth": "106",
+                    "numerology": "1",
+                    "start_subcarrier": "529",
                 },
             )
             config_mount = testing.Mount(
@@ -138,8 +136,13 @@ class TestCharmPingAction(UEFixtures):
                 endpoint="fiveg_rfsim",
                 interface="fiveg_rfsim",
                 remote_app_data={
-                    "rfsim_address": "1.1.1.1",
+                    "version": str(LIBAPI),
                     "sst": "1",
+                    "band": "77",
+                    "dl_freq": "3924060000",
+                    "carrier_bandwidth": "106",
+                    "numerology": "1",
+                    "start_subcarrier": "529",
                 },
             )
             config_mount = testing.Mount(

@@ -2,15 +2,38 @@
 # Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-
 import os
 import tempfile
 
 import pytest
+from charms.oai_ran_du_k8s.v0.fiveg_rfsim import LIBAPI
 from ops import testing
 from ops.pebble import Layer
 
 from tests.unit.fixtures import UEFixtures
+
+INVALID_FIVEG_RFSIM_API_VERSION = str(LIBAPI + 1)
+VALID_RFSIM_REMOTE_DATA_WITHOUT_SD = {
+    "version": str(LIBAPI),
+    "rfsim_address": "1.1.1.1",
+    "sst": "1",
+    "band": "77",
+    "dl_freq": "3924060000",
+    "carrier_bandwidth": "106",
+    "numerology": "1",
+    "start_subcarrier": "529",
+}
+VALID_RFSIM_REMOTE_DATA_WITH_SD = {
+    "version": str(LIBAPI),
+    "rfsim_address": "1.1.1.1",
+    "sst": "2",
+    "sd": "12555",
+    "band": "77",
+    "dl_freq": "3924060000",
+    "carrier_bandwidth": "106",
+    "numerology": "1",
+    "start_subcarrier": "529",
+}
 
 
 class TestCharmConfigure(UEFixtures):
@@ -40,7 +63,7 @@ class TestCharmConfigure(UEFixtures):
 
             self.mock_k8s_privileged.patch_statefulset.assert_called_with(container_name="ue")
 
-    def test_given_workload_is_ready_to_be_configured_and_sst_is_available_when_configure_then_ue_config_file_is_generated_and_pushed_to_the_workload_container(  # noqa: E501
+    def test_given_workload_is_ready_to_be_configured_and_ue_startup_params_are_available_when_configure_then_ue_config_file_is_generated_and_pushed_to_the_workload_container(  # noqa: E501
         self,
     ):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -49,10 +72,7 @@ class TestCharmConfigure(UEFixtures):
             rfsim_relation = testing.Relation(
                 endpoint="fiveg_rfsim",
                 interface="fiveg_rfsim",
-                remote_app_data={
-                    "rfsim_address": "1.1.1.1",
-                    "sst": "1",
-                },
+                remote_app_data=VALID_RFSIM_REMOTE_DATA_WITHOUT_SD,
             )
             config_mount = testing.Mount(
                 source=temp_dir,
@@ -94,6 +114,7 @@ class TestCharmConfigure(UEFixtures):
                 endpoint="fiveg_rfsim",
                 interface="fiveg_rfsim",
                 remote_app_data={
+                    "version": "0",
                     "rfsim_address": "1.1.1.1",
                 },
             )
@@ -131,10 +152,7 @@ class TestCharmConfigure(UEFixtures):
             rfsim_relation = testing.Relation(
                 endpoint="fiveg_rfsim",
                 interface="fiveg_rfsim",
-                remote_app_data={
-                    "rfsim_address": "1.1.1.1",
-                    "sst": "1",
-                },
+                remote_app_data=VALID_RFSIM_REMOTE_DATA_WITHOUT_SD,
             )
             config_mount = testing.Mount(
                 source=temp_dir,
@@ -176,10 +194,7 @@ class TestCharmConfigure(UEFixtures):
             rfsim_relation = testing.Relation(
                 endpoint="fiveg_rfsim",
                 interface="fiveg_rfsim",
-                remote_app_data={
-                    "rfsim_address": "1.1.1.1",
-                    "sst": "1",
-                },
+                remote_app_data=VALID_RFSIM_REMOTE_DATA_WITHOUT_SD,
             )
             config_mount = testing.Mount(
                 source=temp_dir,
@@ -212,7 +227,7 @@ class TestCharmConfigure(UEFixtures):
 
             assert os.stat(temp_dir + "/ue.conf").st_mtime == config_modification_time
 
-    def test_given_ue_config_is_exist_when_rfsim_relation_changed_then_new_ue_config_file_is_pushed_to_the_workload_container(  # noqa: E501
+    def test_given_ue_config_exists_when_rfsim_relation_changed_then_new_ue_config_file_is_pushed_to_the_workload_container(  # noqa: E501
         self,
     ):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -221,7 +236,7 @@ class TestCharmConfigure(UEFixtures):
             rfsim_relation = testing.Relation(
                 endpoint="fiveg_rfsim",
                 interface="fiveg_rfsim",
-                remote_app_data={"rfsim_address": "1.1.1.1", "sst": "2", "sd": "12555"},
+                remote_app_data=VALID_RFSIM_REMOTE_DATA_WITH_SD,
             )
             config_mount = testing.Mount(
                 source=temp_dir,
@@ -270,10 +285,7 @@ class TestCharmConfigure(UEFixtures):
             rfsim_relation = testing.Relation(
                 endpoint="fiveg_rfsim",
                 interface="fiveg_rfsim",
-                remote_app_data={
-                    "rfsim_address": "1.1.1.1",
-                    "sst": "1",
-                },
+                remote_app_data=VALID_RFSIM_REMOTE_DATA_WITHOUT_SD,
             )
             config_mount = testing.Mount(
                 source=temp_dir,
@@ -303,7 +315,7 @@ class TestCharmConfigure(UEFixtures):
                             "ue": {
                                 "startup": "enabled",
                                 "override": "replace",
-                                "command": "/opt/oai-gnb/bin/nr-uesoftmodem -O /tmp/conf/ue.conf --rfsim -r 106 --numerology 1 -C 3924060000 --ssb 530 --band 77 --log_config.global_log_options level,nocolor,time --rfsimulator.serveraddr 1.1.1.1",  # noqa: E501
+                                "command": "/opt/oai-gnb/bin/nr-uesoftmodem -O /tmp/conf/ue.conf --rfsim -r 106 --numerology 1 -C 3924060000 --ssb 529 --band 77 --log_config.global_log_options level,nocolor,time --rfsimulator.serveraddr 1.1.1.1",  # noqa: E501
                                 "environment": {"TZ": "UTC"},
                             }
                         }
@@ -311,15 +323,104 @@ class TestCharmConfigure(UEFixtures):
                 )
             }
 
-    def test_given_can_connect_rfsim_data_not_available_when_configure_then_pebble_layer_is_not_created(  # noqa: E501
-        self,
+    @pytest.mark.parametrize(
+        "remote_app_data",
+        [
+            pytest.param(
+                {
+                    "version": str(LIBAPI),
+                    "sst": "1",
+                    "band": "77",
+                    "dl_freq": "3924060000",
+                    "carrier_bandwidth": "106",
+                    "numerology": "1",
+                    "start_subcarrier": "529",
+                },
+                id="rfsim_address_missing",
+            ),
+            pytest.param(
+                {
+                    "version": str(LIBAPI),
+                    "rfsim_address": "1.1.1.1",
+                    "band": "77",
+                    "dl_freq": "3924060000",
+                    "carrier_bandwidth": "106",
+                    "numerology": "1",
+                    "start_subcarrier": "529",
+                },
+                id="sst_missing",
+            ),
+            pytest.param(
+                {
+                    "version": str(LIBAPI),
+                    "rfsim_address": "1.1.1.1",
+                    "sst": "1",
+                    "dl_freq": "3924060000",
+                    "carrier_bandwidth": "106",
+                    "numerology": "1",
+                    "start_subcarrier": "529",
+                },
+                id="band_missing",
+            ),
+            pytest.param(
+                {
+                    "version": str(LIBAPI),
+                    "rfsim_address": "1.1.1.1",
+                    "sst": "1",
+                    "band": "77",
+                    "carrier_bandwidth": "106",
+                    "numerology": "1",
+                    "start_subcarrier": "529",
+                },
+                id="dl_freq_missing",
+            ),
+            pytest.param(
+                {
+                    "version": str(LIBAPI),
+                    "rfsim_address": "1.1.1.1",
+                    "sst": "1",
+                    "band": "77",
+                    "dl_freq": "3924060000",
+                    "numerology": "1",
+                    "start_subcarrier": "529",
+                },
+                id="carrier_bandwidth_missing",
+            ),
+            pytest.param(
+                {
+                    "version": str(LIBAPI),
+                    "rfsim_address": "1.1.1.1",
+                    "sst": "1",
+                    "band": "77",
+                    "dl_freq": "3924060000",
+                    "carrier_bandwidth": "106",
+                    "start_subcarrier": "529",
+                },
+                id="numerology_missing",
+            ),
+            pytest.param(
+                {
+                    "version": str(LIBAPI),
+                    "rfsim_address": "1.1.1.1",
+                    "sst": "1",
+                    "band": "77",
+                    "dl_freq": "3924060000",
+                    "carrier_bandwidth": "106",
+                    "numerology": "1",
+                },
+                id="start_subcarrier_missing",
+            ),
+        ],
+    )
+    def test_given_can_connect_to_the_container_but_configuration_parameters_are_missing_from_the_fiveg_rfsim_relation_data_when_configure_then_pebble_layer_is_not_created(  # noqa: E501
+        self, remote_app_data
     ):
         with tempfile.TemporaryDirectory() as temp_dir:
             self.mock_check_output.return_value = b"1.2.3.4"
             rfsim_relation = testing.Relation(
                 endpoint="fiveg_rfsim",
                 interface="fiveg_rfsim",
-                remote_app_data={},
+                remote_app_data=remote_app_data,
             )
             config_mount = testing.Mount(
                 source=temp_dir,
