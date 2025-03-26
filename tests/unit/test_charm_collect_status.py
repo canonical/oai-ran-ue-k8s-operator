@@ -95,6 +95,7 @@ class TestCharmCollectStatus(UEFixtures):
                     "version": INVALID_FIVEG_RFSIM_API_VERSION,
                     "rfsim_address": "1.1.1.1",
                     "sst": "1",
+                    "sd": "12555",
                     "band": "77",
                     "dl_freq": "3924060000",
                     "carrier_bandwidth": "106",

@@ -110,22 +110,9 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
             logger.info("Waiting for USB device to be mounted")
             return
         if self._relation_created(RFSIM_RELATION_NAME) and (
-            self.rfsim_requirer.provider_interface_version != LIBAPI
-        ):
-            event.add_status(
-                BlockedStatus(
-                    "Can't establish communication over the `fiveg_rfsim` "
-                    "interface due to version mismatch!"
-                )
-            )
-            logger.error(
-                "Can't establish communication over the `fiveg_rfsim` interface "
-                "due to version mismatch!"
-            )
-            return
-        if self._relation_created(RFSIM_RELATION_NAME) and (
             not all(
                 [
+                    self.rfsim_requirer.provider_interface_version,
                     self.rfsim_requirer.sst,
                     self.rfsim_requirer.sd,
                     self.rfsim_requirer.band,
@@ -138,6 +125,20 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
         ):
             event.add_status(WaitingStatus("Waiting for RFSIM information"))
             logger.info("Waiting for RFSIM information")
+            return
+        if self._relation_created(RFSIM_RELATION_NAME) and (
+            self.rfsim_requirer.provider_interface_version != LIBAPI
+        ):
+            event.add_status(
+                BlockedStatus(
+                    "Can't establish communication over the `fiveg_rfsim` "
+                    "interface due to version mismatch!"
+                )
+            )
+            logger.error(
+                "Can't establish communication over the `fiveg_rfsim` interface "
+                "due to version mismatch!"
+            )
             return
         if not self._container.exists(path=BASE_CONFIG_PATH):
             event.add_status(WaitingStatus("Waiting for storage to be attached"))

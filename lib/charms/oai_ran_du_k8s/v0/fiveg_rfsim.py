@@ -458,7 +458,11 @@ class RFSIMRequires(Object):
         if not relation.app:
             logger.warning("No remote application in relation: %s", self.relation_name)
             return None
-        return int(dict(relation.data[relation.app]).get("version", ""))
+        try:
+            return int(dict(relation.data[relation.app]).get("version", ""))
+        except ValueError:
+            logger.error("Invalid or missing `fiveg_rfsim` provider interface version.")
+            return None
 
     def get_provider_rfsim_information(
         self, relation: Optional[Relation] = None
