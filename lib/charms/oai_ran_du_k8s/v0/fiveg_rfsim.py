@@ -131,7 +131,7 @@ LIBAPI = 0
 
 # Increment this PATCH version before using `charmcraft publish-lib` or reset
 # to 0 if you are raising the major API version
-LIBPATCH = 5
+LIBPATCH = 1
 
 
 logger = logging.getLogger(__name__)
@@ -306,17 +306,17 @@ class RFSIMProvides(Object):
         if not relations:
             raise FivegRFSIMError(f"Relation {self.relation_name} not created yet.")
         if not provider_data_is_valid(
-                {
-                    "version": str(LIBAPI),
-                    "rfsim_address": rfsim_address,
-                    "sst": sst,
-                    "sd": sd,
-                    "band": band,
-                    "dl_freq": dl_freq,
-                    "carrier_bandwidth": carrier_bandwidth,
-                    "numerology": numerology,
-                    "start_subcarrier": start_subcarrier,
-                }
+            {
+                "version": str(LIBAPI),
+                "rfsim_address": rfsim_address,
+                "sst": sst,
+                "sd": sd,
+                "band": band,
+                "dl_freq": dl_freq,
+                "carrier_bandwidth": carrier_bandwidth,
+                "numerology": numerology,
+                "start_subcarrier": start_subcarrier,
+            }
         ):
             raise FivegRFSIMError("Invalid relation data")
         for relation in relations:
