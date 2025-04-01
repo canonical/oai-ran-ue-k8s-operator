@@ -131,7 +131,7 @@ LIBAPI = 0
 
 # Increment this PATCH version before using `charmcraft publish-lib` or reset
 # to 0 if you are raising the major API version
-LIBPATCH = 1
+LIBPATCH = 2
 
 
 logger = logging.getLogger(__name__)
@@ -254,6 +254,23 @@ def provider_data_is_valid(data: Dict[str, Any]) -> bool:
     """
     try:
         ProviderSchema(app_data=ProviderAppData(**data))
+        return True
+    except ValidationError as e:
+        logger.error("Invalid data: %s", e)
+        return False
+
+
+def requirer_data_is_valid(data: Dict[str, Any]) -> bool:
+    """Return whether the requirer data is valid.
+
+    Args:
+        data (dict): Data to be validated.
+
+    Returns:
+        bool: True if data is valid, False otherwise.
+    """
+    try:
+        RequirerSchema(app_data=RequirerAppData(**data))
         return True
     except ValidationError as e:
         logger.error("Invalid data: %s", e)
@@ -515,3 +532,16 @@ class RFSIMRequires(Object):
             logger.error("Invalid relation data: %s: %s", remote_app_relation_data, str(err))
             return None
         return provider_app_data
+
+    def set_rfsim_information(self) -> None:
+        """Push the information about the `fiveg_rfsim` interface version used by the Requirer."""
+        if not self.charm.unit.is_leader():
+            raise FivegRFSIMError("Unit must be leader to set application relation data.")
+        relations = self.model.relations[self.relation_name]
+        if not relations:
+            raise FivegRFSIMError(f"Relation {self.relation_name} not created yet.")
+        if not requirer_data_is_valid({"version": str(LIBAPI)}):
+            raise FivegRFSIMError("Invalid relation data")
+        for relation in relations:
+            data = {"version": str(LIBAPI)}
+            relation.data[self.charm.app].update(data)
