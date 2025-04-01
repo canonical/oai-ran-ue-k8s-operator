@@ -147,7 +147,7 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
         self.unit.set_workload_version(self._get_workload_version())
         event.add_status(ActiveStatus())
 
-    def _configure(self, _) -> None:
+    def _configure(self, _) -> None:  # noqa: C901
         try:
             self._charm_config: CharmConfig = CharmConfig.from_charm(  # type: ignore[no-redef]  # noqa: E501
                 charm=self
