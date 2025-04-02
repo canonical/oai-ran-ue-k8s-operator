@@ -205,6 +205,12 @@ async def _deploy_du(ops_test: OpsTest):
         DU_CHARM_NAME,
         application_name=DU_CHARM_NAME,
         channel=DU_CHARM_CHANNEL,
+        config={
+            "bandwidth": 40,
+            "frequency-band": 77,
+            "sub-carrier-spacing": 30,
+            "center-frequency": "4060",
+        },
         trust=True,
     )
     await ops_test.model.integrate(relation1=DU_CHARM_NAME, relation2=CU_CHARM_NAME)

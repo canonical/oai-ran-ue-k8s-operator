@@ -5,10 +5,13 @@
 import tempfile
 
 import pytest
+from charms.oai_ran_du_k8s.v0.fiveg_rfsim import LIBAPI
 from ops import testing
 from ops.model import ActiveStatus, BlockedStatus, WaitingStatus
 
 from tests.unit.fixtures import UEFixtures
+
+INVALID_FIVEG_RFSIM_API_VERSION = str(LIBAPI + 1)
 
 
 class TestCharmCollectStatus(UEFixtures):
@@ -78,7 +81,7 @@ class TestCharmCollectStatus(UEFixtures):
 
             assert state_out.unit_status == WaitingStatus("Waiting for USB device to be mounted")
 
-    def test_given_fiveg_rfsim_relation_created_but_rfsim_address_is_not_available_when_collect_unit_status_then_status_is_waiting(  # noqa: E501
+    def test_given_fiveg_rfsim_relation_created_but_provider_uses_different_interface_version_when_collect_unit_status_then_status_is_blocked(  # noqa: E501
         self,
     ):
         self.mock_k8s_usb_volume.is_mounted.return_value = False
@@ -88,7 +91,17 @@ class TestCharmCollectStatus(UEFixtures):
             rfsim_relation = testing.Relation(
                 endpoint="fiveg_rfsim",
                 interface="fiveg_rfsim",
-                remote_app_data={},
+                remote_app_data={
+                    "version": INVALID_FIVEG_RFSIM_API_VERSION,
+                    "rfsim_address": "1.1.1.1",
+                    "sst": "1",
+                    "sd": "12555",
+                    "band": "77",
+                    "dl_freq": "3924060000",
+                    "carrier_bandwidth": "106",
+                    "numerology": "1",
+                    "start_subcarrier": "529",
+                },
             )
             config_mount = testing.Mount(
                 source=temp_dir,
@@ -107,20 +120,111 @@ class TestCharmCollectStatus(UEFixtures):
 
             state_out = self.ctx.run(self.ctx.on.collect_unit_status(), state_in)
 
-            assert state_out.unit_status == WaitingStatus("Waiting for RFSIM information")
+            assert state_out.unit_status == BlockedStatus(
+                "Can't establish communication over the `fiveg_rfsim` "
+                "interface due to version mismatch!"
+            )
 
-    def test_given_fiveg_rfsim_relation_created_rfsim_address_is_available_but_sst_is_not_available_when_collect_unit_status_then_status_is_waiting(  # noqa: E501
-        self,
+    @pytest.mark.parametrize(
+        "remote_app_data",
+        [
+            pytest.param(
+                {
+                    "version": str(LIBAPI),
+                    "sst": "1",
+                    "band": "77",
+                    "dl_freq": "3924060000",
+                    "carrier_bandwidth": "106",
+                    "numerology": "1",
+                    "start_subcarrier": "529",
+                },
+                id="rfsim_address_missing",
+            ),
+            pytest.param(
+                {
+                    "version": str(LIBAPI),
+                    "rfsim_address": "1.1.1.1",
+                    "band": "77",
+                    "dl_freq": "3924060000",
+                    "carrier_bandwidth": "106",
+                    "numerology": "1",
+                    "start_subcarrier": "529",
+                },
+                id="sst_missing",
+            ),
+            pytest.param(
+                {
+                    "version": str(LIBAPI),
+                    "rfsim_address": "1.1.1.1",
+                    "sst": "1",
+                    "dl_freq": "3924060000",
+                    "carrier_bandwidth": "106",
+                    "numerology": "1",
+                    "start_subcarrier": "529",
+                },
+                id="band_missing",
+            ),
+            pytest.param(
+                {
+                    "version": str(LIBAPI),
+                    "rfsim_address": "1.1.1.1",
+                    "sst": "1",
+                    "band": "77",
+                    "carrier_bandwidth": "106",
+                    "numerology": "1",
+                    "start_subcarrier": "529",
+                },
+                id="dl_freq_missing",
+            ),
+            pytest.param(
+                {
+                    "version": str(LIBAPI),
+                    "rfsim_address": "1.1.1.1",
+                    "sst": "1",
+                    "band": "77",
+                    "dl_freq": "3924060000",
+                    "numerology": "1",
+                    "start_subcarrier": "529",
+                },
+                id="carrier_bandwidth_missing",
+            ),
+            pytest.param(
+                {
+                    "version": str(LIBAPI),
+                    "rfsim_address": "1.1.1.1",
+                    "sst": "1",
+                    "band": "77",
+                    "dl_freq": "3924060000",
+                    "carrier_bandwidth": "106",
+                    "start_subcarrier": "529",
+                },
+                id="numerology_missing",
+            ),
+            pytest.param(
+                {
+                    "version": str(LIBAPI),
+                    "rfsim_address": "1.1.1.1",
+                    "sst": "1",
+                    "band": "77",
+                    "dl_freq": "3924060000",
+                    "carrier_bandwidth": "106",
+                    "numerology": "1",
+                },
+                id="start_subcarrier_missing",
+            ),
+        ],
+    )
+    def test_given_fiveg_rfsim_relation_created_but_configuration_parameters_are_missing_from_the_relation_data_when_collect_unit_status_then_status_is_waiting(  # noqa: E501
+        self, remote_app_data
     ):
+        self.mock_k8s_usb_volume.is_mounted.return_value = False
         with tempfile.TemporaryDirectory() as temp_dir:
             self.mock_k8s_privileged.is_patched.return_value = True
             self.mock_check_output.return_value = b"1.1.1.1"
             rfsim_relation = testing.Relation(
                 endpoint="fiveg_rfsim",
                 interface="fiveg_rfsim",
-                remote_app_data={
-                    "rfsim_address": "1.1.1.1",
-                },
+                remote_app_data=remote_app_data,
             )
             config_mount = testing.Mount(
                 source=temp_dir,

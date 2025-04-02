@@ -10,7 +10,7 @@ from subprocess import check_output
 from typing import Optional, Tuple
 
 from charms.loki_k8s.v1.loki_push_api import LogForwarder
-from charms.oai_ran_du_k8s.v0.fiveg_rfsim import RFSIMRequires
+from charms.oai_ran_du_k8s.v0.fiveg_rfsim import LIBAPI, RFSIMRequires
 from jinja2 import Environment, FileSystemLoader
 from ops import (
     ActiveStatus,
@@ -110,10 +110,35 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
             logger.info("Waiting for USB device to be mounted")
             return
         if self._relation_created(RFSIM_RELATION_NAME) and (
-            not self.rfsim_requirer.sst or not self.rfsim_requirer.sd
+            not all(
+                [
+                    self.rfsim_requirer.rfsim_address,
+                    self.rfsim_requirer.sst,
+                    self.rfsim_requirer.sd,
+                    self.rfsim_requirer.band,
+                    self.rfsim_requirer.dl_freq,
+                    self.rfsim_requirer.numerology,
+                    self.rfsim_requirer.carrier_bandwidth,
+                    self.rfsim_requirer.start_subcarrier,
+                ]
+            )
         ):
             event.add_status(WaitingStatus("Waiting for RFSIM information"))
             logger.info("Waiting for RFSIM information")
+            return
+        if self._relation_created(RFSIM_RELATION_NAME) and (
+            self.rfsim_requirer.provider_interface_version != LIBAPI
+        ):
+            event.add_status(
+                BlockedStatus(
+                    "Can't establish communication over the `fiveg_rfsim` "
+                    "interface due to version mismatch!"
+                )
+            )
+            logger.error(
+                "Can't establish communication over the `fiveg_rfsim` interface "
+                "due to version mismatch!"
+            )
             return
         if not self._container.exists(path=BASE_CONFIG_PATH):
             event.add_status(WaitingStatus("Waiting for storage to be attached"))
@@ -122,7 +147,7 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
         self.unit.set_workload_version(self._get_workload_version())
         event.add_status(ActiveStatus())
 
-    def _configure(self, _) -> None:
+    def _configure(self, _) -> None:  # noqa: C901
         try:
             self._charm_config: CharmConfig = CharmConfig.from_charm(  # type: ignore[no-redef]  # noqa: E501
                 charm=self
@@ -140,6 +165,8 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
             and not self._k8s_usb_volume.is_mounted()
         ):
             self._k8s_usb_volume.mount()
+        if self._relation_created(RFSIM_RELATION_NAME):
+            self.rfsim_requirer.set_rfsim_information()
         if self._relation_created(RFSIM_RELATION_NAME) and self._k8s_usb_volume.is_mounted():
             self._k8s_usb_volume.unmount()
         if self._relation_created(relation_name=RFSIM_RELATION_NAME) and (
@@ -148,13 +175,7 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
             return
         if not self._container.exists(path=BASE_CONFIG_PATH):
             return
-        rfsim = all(
-            [
-                self._relation_created(relation_name=RFSIM_RELATION_NAME),
-                self.rfsim_requirer.rfsim_address != "",
-                self.rfsim_requirer.sst != 0,
-            ]
-        )
+        rfsim = self._relation_created(relation_name=RFSIM_RELATION_NAME)
 
         ue_config = self._generate_ue_config()
         if service_restart_required := self._is_ue_config_up_to_date(ue_config):
@@ -305,15 +326,15 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
                     f"{BASE_CONFIG_PATH}/{CONFIG_FILE_NAME}",
                     "--rfsim",
                     "-r",
-                    "106",
+                    str(self.rfsim_requirer.carrier_bandwidth),
                     "--numerology",
-                    "1",
+                    str(self.rfsim_requirer.numerology),
                     "-C",
-                    "3924060000",
+                    str(self.rfsim_requirer.dl_freq),
                     "--ssb",
-                    "530",
+                    str(self.rfsim_requirer.start_subcarrier),
                     "--band",
-                    "77",
+                    str(self.rfsim_requirer.band),
                     "--log_config.global_log_options",
                     "level,nocolor,time",
                     "--rfsimulator.serveraddr",
@@ -328,15 +349,15 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
                 "-O",
                 f"{BASE_CONFIG_PATH}/{CONFIG_FILE_NAME}",
                 "-r",
-                "106",
+                str(self.rfsim_requirer.carrier_bandwidth),
                 "--numerology",
-                "1",
-                "--ssb",
-                "530",
-                "--band",
-                "77",
+                str(self.rfsim_requirer.numerology),
                 "-C",
-                "3924060000",
+                str(self.rfsim_requirer.dl_freq),
+                "--ssb",
+                str(self.rfsim_requirer.start_subcarrier),
+                "--band",
+                str(self.rfsim_requirer.band),
                 "-E",
                 "--log_config.global_log_options",
                 "level,nocolor,time",
