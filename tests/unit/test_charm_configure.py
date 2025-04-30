@@ -357,7 +357,9 @@ class TestCharmConfigure(UEFixtures):
 
             container = state_out.get_container("ue")
             ue_pebble_layer = container.layers["ue"].to_dict()
-            ue_startup_command = ue_pebble_layer.get("services", {}).get("ue", {}).get("command", "")
+            ue_startup_command = (
+                ue_pebble_layer.get("services", {}).get("ue", {}).get("command", "")
+            )
             assert (
                 ue_startup_command
                 == "/opt/oai-gnb/bin/nr-uesoftmodem -O /tmp/conf/ue.conf -r 106 --numerology 1 -C 3924060000 --ssb 529 --band 77 --log_config.global_log_options level,nocolor,time --rfsim --rfsimulator.serveraddr 1.1.1.1 -E"  # noqa: E501
@@ -397,7 +399,9 @@ class TestCharmConfigure(UEFixtures):
 
             container = state_out.get_container("ue")
             ue_pebble_layer = container.layers["ue"].to_dict()
-            ue_startup_command = ue_pebble_layer.get("services", {}).get("ue", {}).get("command", "")
+            ue_startup_command = (
+                ue_pebble_layer.get("services", {}).get("ue", {}).get("command", "")
+            )
             assert (
                 ue_startup_command
                 == "/opt/oai-gnb/bin/nr-uesoftmodem -O /tmp/conf/ue.conf -r 106 --numerology 1 -C 3924060000 --ssb 529 --band 77 --log_config.global_log_options level,nocolor,time --rfsim --rfsimulator.serveraddr 1.1.1.1 --ue-nb-ant-tx 2 --ue-nb-ant-rx 2"  # noqa: E501
