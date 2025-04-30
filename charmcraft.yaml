@@ -63,6 +63,16 @@ config:
     sd:
       type: int
       description: Slice/Service Definition in decimal representation. This value will be transformed into into its hexadecimal representation (1056816 -> `0x102030`). This value is ignored when the `fiveg_rfsim` is used as the SD will be taken from the relation data.
+    use-three-quarter-sampling:
+      type: boolean
+      default: false
+      description: |
+        This parameter enables three-quarter sampling. The value of this parameter should be the same as the value of the corresponding parameter of the DU.
+    use-mimo:
+      type: boolean
+      default: false
+      description: |
+        When set to true enables support for 2x2 MIMO.
 
 actions:
   ping:
