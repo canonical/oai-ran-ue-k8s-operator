@@ -318,51 +318,36 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
         )
 
     def _get_ue_startup_command(self, rfsim: bool) -> str:
-        if rfsim:
-            return " ".join(
-                [
-                    "/opt/oai-gnb/bin/nr-uesoftmodem",
-                    "-O",
-                    f"{BASE_CONFIG_PATH}/{CONFIG_FILE_NAME}",
-                    "--rfsim",
-                    "-r",
-                    str(self.rfsim_requirer.carrier_bandwidth),
-                    "--numerology",
-                    str(self.rfsim_requirer.numerology),
-                    "-C",
-                    str(self.rfsim_requirer.dl_freq),
-                    "--ssb",
-                    str(self.rfsim_requirer.start_subcarrier),
-                    "--band",
-                    str(self.rfsim_requirer.band),
-                    "--log_config.global_log_options",
-                    "level,nocolor,time",
-                    "--rfsimulator.serveraddr",
-                    str(self.rfsim_requirer.rfsim_address)
-                    if self.rfsim_requirer.rfsim_address
-                    else "",
-                ]
-            )
-        return " ".join(
-            [
-                "/opt/oai-gnb/bin/nr-uesoftmodem",
-                "-O",
-                f"{BASE_CONFIG_PATH}/{CONFIG_FILE_NAME}",
-                "-r",
-                str(self.rfsim_requirer.carrier_bandwidth),
-                "--numerology",
-                str(self.rfsim_requirer.numerology),
-                "-C",
-                str(self.rfsim_requirer.dl_freq),
-                "--ssb",
-                str(self.rfsim_requirer.start_subcarrier),
-                "--band",
-                str(self.rfsim_requirer.band),
-                "-E",
-                "--log_config.global_log_options",
-                "level,nocolor,time",
-            ]
-        )
+        ue_startup_command = [
+            "/opt/oai-gnb/bin/nr-uesoftmodem",
+            "-O",
+            f"{BASE_CONFIG_PATH}/{CONFIG_FILE_NAME}",
+            "-r",
+            str(self.rfsim_requirer.carrier_bandwidth),
+            "--numerology",
+            str(self.rfsim_requirer.numerology),
+            "-C",
+            str(self.rfsim_requirer.dl_freq),
+            "--ssb",
+            str(self.rfsim_requirer.start_subcarrier),
+            "--band",
+            str(self.rfsim_requirer.band),
+            "--log_config.global_log_options",
+            "level,nocolor,time",
+            "--rfsim",
+            "--rfsimulator.serveraddr",
+            str(self.rfsim_requirer.rfsim_address),
+        ]
+
+        ue_enable_tree_quarter_sampling_params = ["-E"]
+        ue_enable_mimo_params = ["--ue-nb-ant-tx 2", "--ue-nb-ant-rx 2"]
+
+        if self._charm_config.use_three_quarter_sampling:
+            ue_startup_command += ue_enable_tree_quarter_sampling_params
+        if self._charm_config.use_mimo:
+            ue_startup_command += ue_enable_mimo_params
+
+        return " ".join(ue_startup_command)
 
     def _exec_command_in_workload(self, command: str) -> Tuple[Optional[str], Optional[str]]:
         """Execute command in workload container.

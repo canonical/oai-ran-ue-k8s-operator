@@ -70,6 +70,8 @@ class UEConfig(BaseModel):  # pylint: disable=too-few-public-methods
         ge=0,
         le=16777215,
     )
+    use_three_quarter_sampling: bool = False
+    use_mimo: bool = False
 
 
 @dataclasses.dataclass
@@ -83,6 +85,8 @@ class CharmConfig:
         dnn: Data Network Name
         sst: Slice/Service Type
         sd: Slice Differentiator
+        use_three_quarter_sampling: Enable three-quarter sampling rate
+        use_mimo: Enable support for 2x2 MIMO
     """
 
     imsi: StrictStr
@@ -91,6 +95,8 @@ class CharmConfig:
     dnn: StrictStr
     sst: int
     sd: Optional[int]
+    use_three_quarter_sampling: bool
+    use_mimo: bool
 
     def __init__(self, *, ue_config: UEConfig):
         """Initialize a new instance of the CharmConfig class.
@@ -104,6 +110,8 @@ class CharmConfig:
         self.dnn = ue_config.dnn
         self.sst = ue_config.sst
         self.sd = ue_config.sd
+        self.use_three_quarter_sampling = ue_config.use_three_quarter_sampling
+        self.use_mimo = ue_config.use_mimo
 
     @classmethod
     def from_charm(
