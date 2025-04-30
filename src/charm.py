@@ -175,12 +175,11 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
             return
         if not self._container.exists(path=BASE_CONFIG_PATH):
             return
-        rfsim = self._relation_created(relation_name=RFSIM_RELATION_NAME)
 
         ue_config = self._generate_ue_config()
         if service_restart_required := self._is_ue_config_up_to_date(ue_config):
             self._write_config_file(content=ue_config)
-        self._configure_pebble(rfsim=rfsim, restart=service_restart_required)
+        self._configure_pebble(restart=service_restart_required)
 
     @staticmethod
     def get_sd_as_hex(value: Optional[int]) -> str:
@@ -279,15 +278,14 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
         self._container.push(source=content, path=f"{BASE_CONFIG_PATH}/{CONFIG_FILE_NAME}")
         logger.info("Config file written")
 
-    def _configure_pebble(self, rfsim: bool, restart: bool = False) -> None:
+    def _configure_pebble(self, restart: bool = False) -> None:
         """Configure the Pebble layer.
 
         Args:
-            rfsim (bool): Whether to configure the UE for RF simulator.
             restart (bool): Whether to restart the DU container.
         """
         plan = self._container.get_plan()
-        pebble_layer = self._get_ue_pebble_layer(rfsim=rfsim)
+        pebble_layer = self._get_ue_pebble_layer()
         if plan.services != pebble_layer.services:
             self._container.add_layer(self._container_name, pebble_layer, combine=True)
             self._container.replan()
@@ -298,7 +296,7 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
             return
         self._container.replan()
 
-    def _get_ue_pebble_layer(self, rfsim: bool) -> Layer:
+    def _get_ue_pebble_layer(self) -> Layer:
         """Return pebble layer for the ue container.
 
         Returns:
@@ -310,14 +308,14 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
                     self._service_name: {
                         "override": "replace",
                         "startup": "enabled",
-                        "command": self._get_ue_startup_command(rfsim=rfsim),
+                        "command": self._get_ue_startup_command(),
                         "environment": self._ue_environment_variables,
                     },
                 },
             }
         )
 
-    def _get_ue_startup_command(self, rfsim: bool) -> str:
+    def _get_ue_startup_command(self) -> str:
         ue_startup_command = [
             "/opt/oai-gnb/bin/nr-uesoftmodem",
             "-O",
@@ -334,14 +332,18 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
             str(self.rfsim_requirer.band),
             "--log_config.global_log_options",
             "level,nocolor,time",
+        ]
+
+        ue_rfsim_params = [
             "--rfsim",
             "--rfsimulator.serveraddr",
             str(self.rfsim_requirer.rfsim_address),
         ]
-
         ue_enable_tree_quarter_sampling_params = ["-E"]
         ue_enable_mimo_params = ["--ue-nb-ant-tx 2", "--ue-nb-ant-rx 2"]
 
+        if self._relation_created(relation_name=RFSIM_RELATION_NAME):
+            ue_startup_command += ue_rfsim_params
         if self._charm_config.use_three_quarter_sampling:
             ue_startup_command += ue_enable_tree_quarter_sampling_params
         if self._charm_config.use_mimo:
