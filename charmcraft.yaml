@@ -73,6 +73,13 @@ config:
       default: false
       description: |
         When set to true enables support for 2x2 MIMO.
+    rf-simulation-mode:
+      type: boolean
+      default: true
+      description: |
+        Run UE using simulated RF medium.
+        In the simulation mode, the UE emulates the Radio Frequency (RF) medium. This mode allows performing E2E tests of the 5G network without need for real radio heads or RF spectrum license.
+        To run tests using real hardware and RF medium set this to false.
 
 actions:
   ping:

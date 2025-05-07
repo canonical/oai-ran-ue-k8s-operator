@@ -342,7 +342,10 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
         ue_enable_tree_quarter_sampling_params = ["-E"]
         ue_enable_mimo_params = ["--ue-nb-ant-tx 2", "--ue-nb-ant-rx 2"]
 
-        if self._relation_created(relation_name=RFSIM_RELATION_NAME):
+        if (
+            self._relation_created(relation_name=RFSIM_RELATION_NAME)
+            and self._charm_config.rf_simulation_mode
+        ):
             ue_startup_command += ue_rfsim_params
         if self._charm_config.use_three_quarter_sampling:
             ue_startup_command += ue_enable_tree_quarter_sampling_params

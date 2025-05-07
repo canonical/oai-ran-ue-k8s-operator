@@ -407,6 +407,48 @@ class TestCharmConfigure(UEFixtures):
                 == "/opt/oai-gnb/bin/nr-uesoftmodem -O /tmp/conf/ue.conf -r 106 --numerology 1 -C 3924060000 --ssb 529 --band 77 --log_config.global_log_options level,nocolor,time --rfsim --rfsimulator.serveraddr 1.1.1.1 --ue-nb-ant-tx 2 --ue-nb-ant-rx 2"  # noqa: E501
             )
 
+    def test_given_rf_simulation_mode_disabled_when_configure_then_ue_startup_command_has_correct_params(  # noqa: E501
+        self,
+    ):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            self.mock_k8s_usb_volume.is_mounted.return_value = False
+            self.mock_check_output.return_value = b"1.2.3.4"
+            rfsim_relation = testing.Relation(
+                endpoint="fiveg_rfsim",
+                interface="fiveg_rfsim",
+                remote_app_data=VALID_RFSIM_REMOTE_DATA_WITHOUT_SD,
+            )
+            config_mount = testing.Mount(
+                source=temp_dir,
+                location="/tmp/conf",
+            )
+            container = testing.Container(
+                name="ue",
+                can_connect=True,
+                mounts={
+                    "config": config_mount,
+                },
+            )
+            state_in = testing.State(
+                leader=True,
+                relations=[rfsim_relation],
+                containers=[container],
+                model=testing.Model(name="whatever"),
+                config={"rf-simulation-mode": False},
+            )
+
+            state_out = self.ctx.run(self.ctx.on.pebble_ready(container), state_in)
+
+            container = state_out.get_container("ue")
+            ue_pebble_layer = container.layers["ue"].to_dict()
+            ue_startup_command = (
+                ue_pebble_layer.get("services", {}).get("ue", {}).get("command", "")
+            )
+            assert (
+                ue_startup_command
+                == "/opt/oai-gnb/bin/nr-uesoftmodem -O /tmp/conf/ue.conf -r 106 --numerology 1 -C 3924060000 --ssb 529 --band 77 --log_config.global_log_options level,nocolor,time"  # noqa: E501
+            )
+
     @pytest.mark.parametrize(
         "remote_app_data",
         [

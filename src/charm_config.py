@@ -72,6 +72,7 @@ class UEConfig(BaseModel):  # pylint: disable=too-few-public-methods
     )
     use_three_quarter_sampling: bool = False
     use_mimo: bool = False
+    rf_simulation_mode: bool = True
 
 
 @dataclasses.dataclass
@@ -87,6 +88,7 @@ class CharmConfig:
         sd: Slice Differentiator
         use_three_quarter_sampling: Enable three-quarter sampling rate
         use_mimo: Enable support for 2x2 MIMO
+        rf_simulation_mode: Enable RF medium simulation
     """
 
     imsi: StrictStr
@@ -97,6 +99,7 @@ class CharmConfig:
     sd: Optional[int]
     use_three_quarter_sampling: bool
     use_mimo: bool
+    rf_simulation_mode: bool
 
     def __init__(self, *, ue_config: UEConfig):
         """Initialize a new instance of the CharmConfig class.
@@ -112,6 +115,7 @@ class CharmConfig:
         self.sd = ue_config.sd
         self.use_three_quarter_sampling = ue_config.use_three_quarter_sampling
         self.use_mimo = ue_config.use_mimo
+        self.rf_simulation_mode = ue_config.rf_simulation_mode
 
     @classmethod
     def from_charm(
