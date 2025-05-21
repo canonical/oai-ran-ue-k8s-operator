@@ -5,11 +5,12 @@
 import tempfile
 
 import pytest
-from charms.oai_ran_du_k8s.v0.fiveg_rfsim import LIBAPI
+from charms.oai_ran_du_k8s.v0.fiveg_rf_config import LIBAPI
 from ops import testing
 from ops.pebble import Layer, ServiceStatus
 from ops.testing import ActionFailed
 
+from src.charm import RF_CONFIG_RELATION_NAME
 from tests.unit.fixtures import UEFixtures
 
 
@@ -41,9 +42,9 @@ class TestCharmPingAction(UEFixtures):
     def test_given_ue_service_not_ready_when_ping_action_then_action_status_is_failed(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             self.mock_check_output.return_value = b"1.2.3.4"
-            rfsim_relation = testing.Relation(
-                endpoint="fiveg_rfsim",
-                interface="fiveg_rfsim",
+            rf_config_relation = testing.Relation(
+                endpoint=RF_CONFIG_RELATION_NAME,
+                interface=RF_CONFIG_RELATION_NAME,
                 remote_app_data={
                     "version": str(LIBAPI),
                     "sst": "1",
@@ -67,7 +68,7 @@ class TestCharmPingAction(UEFixtures):
             )
             state_in = testing.State(
                 leader=True,
-                relations=[rfsim_relation],
+                relations=[rf_config_relation],
                 containers=[container],
             )
 
@@ -82,9 +83,9 @@ class TestCharmPingAction(UEFixtures):
         test_successful_stdout = "10 packets transmitted, 10 received, 0% packet loss, time 9012ms"
         with tempfile.TemporaryDirectory() as temp_dir:
             self.mock_check_output.return_value = b"1.2.3.4"
-            rfsim_relation = testing.Relation(
-                endpoint="fiveg_rfsim",
-                interface="fiveg_rfsim",
+            rf_config_relation = testing.Relation(
+                endpoint=RF_CONFIG_RELATION_NAME,
+                interface=RF_CONFIG_RELATION_NAME,
                 remote_app_data={
                     "version": str(LIBAPI),
                     "sst": "1",
@@ -118,7 +119,7 @@ class TestCharmPingAction(UEFixtures):
             )
             state_in = testing.State(
                 leader=True,
-                relations=[rfsim_relation],
+                relations=[rf_config_relation],
                 containers=[container],
             )
 
@@ -132,9 +133,9 @@ class TestCharmPingAction(UEFixtures):
     ):
         with tempfile.TemporaryDirectory() as temp_dir:
             self.mock_check_output.return_value = b"1.2.3.4"
-            rfsim_relation = testing.Relation(
-                endpoint="fiveg_rfsim",
-                interface="fiveg_rfsim",
+            rf_config_relation = testing.Relation(
+                endpoint=RF_CONFIG_RELATION_NAME,
+                interface=RF_CONFIG_RELATION_NAME,
                 remote_app_data={
                     "version": str(LIBAPI),
                     "sst": "1",
@@ -168,7 +169,7 @@ class TestCharmPingAction(UEFixtures):
             )
             state_in = testing.State(
                 leader=True,
-                relations=[rfsim_relation],
+                relations=[rf_config_relation],
                 containers=[container],
             )
 

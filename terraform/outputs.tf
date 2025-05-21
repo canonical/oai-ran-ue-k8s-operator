@@ -8,7 +8,7 @@ output "app_name" {
 
 output "requires" {
   value = {
-    "fiveg_rfsim" = "fiveg_rfsim"
-    "logging"     = "logging"
+    "fiveg_rf_config" = "fiveg_rf_config"
+    "logging"         = "logging"
   }
 }

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
+
 import json
 from pathlib import Path
 
@@ -8,6 +9,8 @@ import pytest
 import requests
 import yaml
 from pytest_operator.plugin import OpsTest
+
+from src.charm import RF_CONFIG_RELATION_NAME
 
 METADATA = yaml.safe_load(Path("./charmcraft.yaml").read_text())
 NMS_MOCK_CHARM_PATH = "./tests/integration/nms_mock_charm.py"
@@ -47,7 +50,9 @@ async def test_relate_and_wait_for_active_status(
     ops_test: OpsTest, deploy_charm_under_test, deploy_dependencies
 ):
     assert ops_test.model
-    await ops_test.model.integrate(relation1=f"{APP_NAME}:fiveg_rfsim", relation2=DU_CHARM_NAME)
+    await ops_test.model.integrate(
+        relation1=f"{APP_NAME}:{RF_CONFIG_RELATION_NAME}", relation2=DU_CHARM_NAME
+    )
     await ops_test.model.integrate(
         relation1=f"{APP_NAME}:logging", relation2=GRAFANA_AGENT_CHARM_NAME
     )

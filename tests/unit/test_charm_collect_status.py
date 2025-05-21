@@ -5,13 +5,14 @@
 import tempfile
 
 import pytest
-from charms.oai_ran_du_k8s.v0.fiveg_rfsim import LIBAPI
+from charms.oai_ran_du_k8s.v0.fiveg_rf_config import LIBAPI
 from ops import testing
 from ops.model import ActiveStatus, BlockedStatus, WaitingStatus
 
+from src.charm import RF_CONFIG_RELATION_NAME
 from tests.unit.fixtures import UEFixtures
 
-INVALID_FIVEG_RFSIM_API_VERSION = str(LIBAPI + 1)
+INVALID_FIVEG_RF_CONFIG_API_VERSION = str(LIBAPI + 1)
 
 
 class TestCharmCollectStatus(UEFixtures):
@@ -55,7 +56,7 @@ class TestCharmCollectStatus(UEFixtures):
             f"The following configurations are not valid: ['{config_param}']"
         )
 
-    def test_given_fiveg_rfsim_relation_not_created_and_usb_not_mounted_when_collect_unit_status_then_status_is_waiting(  # noqa: E501
+    def test_given_fiveg_rf_config_relation_not_created_when_collect_unit_status_then_status_is_blocked(  # noqa: E501
         self,
     ):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -79,21 +80,22 @@ class TestCharmCollectStatus(UEFixtures):
 
             state_out = self.ctx.run(self.ctx.on.collect_unit_status(), state_in)
 
-            assert state_out.unit_status == WaitingStatus("Waiting for USB device to be mounted")
+            assert state_out.unit_status == BlockedStatus(
+                "Waiting for fiveg_rf_config relation to be created"
+            )
 
-    def test_given_fiveg_rfsim_relation_created_but_provider_uses_different_interface_version_when_collect_unit_status_then_status_is_blocked(  # noqa: E501
+    def test_given_fiveg_rf_config_relation_created_but_provider_uses_different_interface_version_when_collect_unit_status_then_status_is_blocked(  # noqa: E501
         self,
     ):
         self.mock_k8s_usb_volume.is_mounted.return_value = False
         with tempfile.TemporaryDirectory() as temp_dir:
             self.mock_k8s_privileged.is_patched.return_value = True
             self.mock_check_output.return_value = b"1.1.1.1"
-            rfsim_relation = testing.Relation(
-                endpoint="fiveg_rfsim",
-                interface="fiveg_rfsim",
+            rf_config_relation = testing.Relation(
+                endpoint=RF_CONFIG_RELATION_NAME,
+                interface=RF_CONFIG_RELATION_NAME,
                 remote_app_data={
-                    "version": INVALID_FIVEG_RFSIM_API_VERSION,
-                    "rfsim_address": "1.1.1.1",
+                    "version": INVALID_FIVEG_RF_CONFIG_API_VERSION,
                     "sst": "1",
                     "sd": "12555",
                     "band": "77",
@@ -114,16 +116,56 @@ class TestCharmCollectStatus(UEFixtures):
             )
             state_in = testing.State(
                 leader=True,
-                relations=[rfsim_relation],
+                relations=[rf_config_relation],
                 containers=[container],
             )
 
             state_out = self.ctx.run(self.ctx.on.collect_unit_status(), state_in)
 
             assert state_out.unit_status == BlockedStatus(
-                "Can't establish communication over the `fiveg_rfsim` "
+                "Can't establish communication over the `fiveg_rf_config` "
                 "interface due to version mismatch!"
             )
+
+    def test_given_charm_not_using_simulation_mode_and_usb_not_mounted_when_collect_unit_status_then_status_is_waiting(  # noqa: E501
+        self,
+    ):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            self.mock_k8s_privileged.is_patched.return_value = True
+            self.mock_k8s_usb_volume.is_mounted.return_value = False
+            self.mock_check_output.return_value = b"1.1.1.1"
+            rf_config_relation = testing.Relation(
+                endpoint=RF_CONFIG_RELATION_NAME,
+                interface=RF_CONFIG_RELATION_NAME,
+                remote_app_data={
+                    "version": str(LIBAPI),
+                    "sst": "1",
+                    "sd": "12555",
+                    "band": "77",
+                    "dl_freq": "3924060000",
+                    "carrier_bandwidth": "106",
+                    "numerology": "1",
+                    "start_subcarrier": "529",
+                },
+            )
+            config_mount = testing.Mount(
+                source=temp_dir,
+                location="/tmp/conf",
+            )
+            container = testing.Container(
+                name="ue",
+                can_connect=True,
+                mounts={"config": config_mount},
+            )
+            state_in = testing.State(
+                leader=True,
+                relations=[rf_config_relation],
+                containers=[container],
+            )
+
+            state_out = self.ctx.run(self.ctx.on.collect_unit_status(), state_in)
+
+            assert state_out.unit_status == WaitingStatus("Waiting for USB device to be mounted")
 
     @pytest.mark.parametrize(
         "remote_app_data",
@@ -131,19 +173,6 @@ class TestCharmCollectStatus(UEFixtures):
             pytest.param(
                 {
                     "version": str(LIBAPI),
-                    "sst": "1",
-                    "band": "77",
-                    "dl_freq": "3924060000",
-                    "carrier_bandwidth": "106",
-                    "numerology": "1",
-                    "start_subcarrier": "529",
-                },
-                id="rfsim_address_missing",
-            ),
-            pytest.param(
-                {
-                    "version": str(LIBAPI),
-                    "rfsim_address": "1.1.1.1",
                     "band": "77",
                     "dl_freq": "3924060000",
                     "carrier_bandwidth": "106",
@@ -155,7 +184,6 @@ class TestCharmCollectStatus(UEFixtures):
             pytest.param(
                 {
                     "version": str(LIBAPI),
-                    "rfsim_address": "1.1.1.1",
                     "sst": "1",
                     "dl_freq": "3924060000",
                     "carrier_bandwidth": "106",
@@ -167,7 +195,6 @@ class TestCharmCollectStatus(UEFixtures):
             pytest.param(
                 {
                     "version": str(LIBAPI),
-                    "rfsim_address": "1.1.1.1",
                     "sst": "1",
                     "band": "77",
                     "carrier_bandwidth": "106",
@@ -179,7 +206,6 @@ class TestCharmCollectStatus(UEFixtures):
             pytest.param(
                 {
                     "version": str(LIBAPI),
-                    "rfsim_address": "1.1.1.1",
                     "sst": "1",
                     "band": "77",
                     "dl_freq": "3924060000",
@@ -191,7 +217,6 @@ class TestCharmCollectStatus(UEFixtures):
             pytest.param(
                 {
                     "version": str(LIBAPI),
-                    "rfsim_address": "1.1.1.1",
                     "sst": "1",
                     "band": "77",
                     "dl_freq": "3924060000",
@@ -203,7 +228,6 @@ class TestCharmCollectStatus(UEFixtures):
             pytest.param(
                 {
                     "version": str(LIBAPI),
-                    "rfsim_address": "1.1.1.1",
                     "sst": "1",
                     "band": "77",
                     "dl_freq": "3924060000",
@@ -214,16 +238,16 @@ class TestCharmCollectStatus(UEFixtures):
             ),
         ],
     )
-    def test_given_fiveg_rfsim_relation_created_but_configuration_parameters_are_missing_from_the_relation_data_when_collect_unit_status_then_status_is_waiting(  # noqa: E501
+    def test_given_charm_running_in_non_simulation_mode_and_fiveg_rf_config_relation_created_but_configuration_parameters_are_missing_from_the_relation_data_when_collect_unit_status_then_status_is_waiting(  # noqa: E501
         self, remote_app_data
     ):
-        self.mock_k8s_usb_volume.is_mounted.return_value = False
+        self.mock_k8s_usb_volume.is_mounted.return_value = True
         with tempfile.TemporaryDirectory() as temp_dir:
             self.mock_k8s_privileged.is_patched.return_value = True
             self.mock_check_output.return_value = b"1.1.1.1"
-            rfsim_relation = testing.Relation(
-                endpoint="fiveg_rfsim",
-                interface="fiveg_rfsim",
+            rf_config_relation = testing.Relation(
+                endpoint=RF_CONFIG_RELATION_NAME,
+                interface=RF_CONFIG_RELATION_NAME,
                 remote_app_data=remote_app_data,
             )
             config_mount = testing.Mount(
@@ -237,13 +261,53 @@ class TestCharmCollectStatus(UEFixtures):
             )
             state_in = testing.State(
                 leader=True,
-                relations=[rfsim_relation],
+                relations=[rf_config_relation],
                 containers=[container],
             )
 
             state_out = self.ctx.run(self.ctx.on.collect_unit_status(), state_in)
 
-            assert state_out.unit_status == WaitingStatus("Waiting for RFSIM information")
+            assert state_out.unit_status == WaitingStatus("Waiting for RF configuration")
+
+    def test_given_charm_running_in_simulation_mode_and_fiveg_rf_config_relation_created_but_rfsim_address_is_missing_from_the_relation_data_when_collect_unit_status_then_status_is_waiting(  # noqa: E501
+        self,
+    ):
+        self.mock_k8s_usb_volume.is_mounted.return_value = False
+        with tempfile.TemporaryDirectory() as temp_dir:
+            self.mock_k8s_privileged.is_patched.return_value = True
+            self.mock_check_output.return_value = b"1.1.1.1"
+            rf_config_relation = testing.Relation(
+                endpoint=RF_CONFIG_RELATION_NAME,
+                interface=RF_CONFIG_RELATION_NAME,
+                remote_app_data={
+                    "version": str(LIBAPI),
+                    "sst": "1",
+                    "band": "77",
+                    "dl_freq": "3924060000",
+                    "carrier_bandwidth": "106",
+                    "numerology": "1",
+                    "start_subcarrier": "529",
+                },
+            )
+            config_mount = testing.Mount(
+                source=temp_dir,
+                location="/tmp/conf",
+            )
+            container = testing.Container(
+                name="ue",
+                can_connect=True,
+                mounts={"config": config_mount},
+            )
+            state_in = testing.State(
+                leader=True,
+                config={"simulation-mode": True},
+                relations=[rf_config_relation],
+                containers=[container],
+            )
+
+            state_out = self.ctx.run(self.ctx.on.collect_unit_status(), state_in)
+
+            assert state_out.unit_status == WaitingStatus("Waiting for RF simulator IP address")
 
     def test_given_cant_connect_to_container_when_collect_status_then_status_is_waiting(self):
         self.mock_k8s_usb_volume.is_mounted.return_value = False
@@ -281,22 +345,30 @@ class TestCharmCollectStatus(UEFixtures):
     def test_given_charm_statefulset_is_not_patched_when_collect_unit_status_then_status_is_waiting(  # noqa: E501
         self,
     ):
-        self.mock_k8s_usb_volume.is_mounted.return_value = False
-        self.mock_k8s_privileged.is_patched.return_value = False
-        self.mock_check_output.return_value = b"1.2.3.4"
-        container = testing.Container(
-            name="ue",
-            can_connect=True,
-        )
-        state_in = testing.State(
-            leader=True,
-            relations=[],
-            containers=[container],
-        )
+        with tempfile.TemporaryDirectory() as temp_dir:
+            self.mock_k8s_usb_volume.is_mounted.return_value = False
+            self.mock_k8s_privileged.is_patched.return_value = False
+            self.mock_check_output.return_value = b"1.2.3.4"
+            config_mount = testing.Mount(
+                source=temp_dir,
+                location="/tmp/conf",
+            )
+            container = testing.Container(
+                name="ue",
+                can_connect=True,
+                mounts={
+                    "config": config_mount,
+                },
+            )
+            state_in = testing.State(
+                leader=True,
+                relations=[],
+                containers=[container],
+            )
 
-        state_out = self.ctx.run(self.ctx.on.collect_unit_status(), state_in)
+            state_out = self.ctx.run(self.ctx.on.collect_unit_status(), state_in)
 
-        assert state_out.unit_status == WaitingStatus("Waiting for statefulset to be patched")
+            assert state_out.unit_status == WaitingStatus("Waiting for statefulset to be patched")
 
     def test_given_config_file_doesnt_exist_when_collect_status_then_status_is_waiting(self):
         self.mock_k8s_usb_volume.is_mounted.return_value = True
@@ -320,6 +392,19 @@ class TestCharmCollectStatus(UEFixtures):
         with tempfile.TemporaryDirectory() as temp_dir:
             self.mock_k8s_usb_volume.is_mounted.return_value = True
             self.mock_check_output.return_value = b"1.2.3.4"
+            rf_config_relation = testing.Relation(
+                endpoint=RF_CONFIG_RELATION_NAME,
+                interface=RF_CONFIG_RELATION_NAME,
+                remote_app_data={
+                    "version": str(LIBAPI),
+                    "sst": "1",
+                    "band": "77",
+                    "dl_freq": "3924060000",
+                    "carrier_bandwidth": "106",
+                    "numerology": "1",
+                    "start_subcarrier": "529",
+                },
+            )
             config_mount = testing.Mount(
                 source=temp_dir,
                 location="/tmp/conf",
@@ -333,7 +418,7 @@ class TestCharmCollectStatus(UEFixtures):
             )
             state_in = testing.State(
                 leader=True,
-                relations=[],
+                relations=[rf_config_relation],
                 containers=[container],
             )
 
