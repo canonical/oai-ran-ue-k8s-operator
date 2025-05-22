@@ -23,7 +23,7 @@ juju deploy oai-ran-cu-k8s --trust --channel=2.2/edge
 juju deploy oai-ran-du-k8s --trust --channel=2.2/edge --config simulation-mode=true
 juju deploy oai-ran-ue-k8s --trust --channel=2.2/edge
 juju integrate oai-ran-du-k8s:fiveg_f1 oai-ran-cu-k8s:fiveg_f1
-juju integrate oai-ran-du-k8s:fiveg_rfsim oai-ran-ue-k8s:fiveg_rfsim
+juju integrate oai-ran-du-k8s:fiveg_rf_config oai-ran-ue-k8s:fiveg_rf_config
 ```
 
 ## Image

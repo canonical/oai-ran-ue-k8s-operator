@@ -10,7 +10,7 @@ from subprocess import check_output
 from typing import Optional, Tuple
 
 from charms.loki_k8s.v1.loki_push_api import LogForwarder
-from charms.oai_ran_du_k8s.v0.fiveg_rfsim import LIBAPI, RFSIMRequires
+from charms.oai_ran_du_k8s.v0.fiveg_rf_config import LIBAPI, RFConfigRequires
 from jinja2 import Environment, FileSystemLoader
 from ops import (
     ActiveStatus,
@@ -22,7 +22,7 @@ from ops import (
 )
 from ops.charm import ActionEvent, CharmBase
 from ops.model import ModelError
-from ops.pebble import ExecError, Layer
+from ops.pebble import ExecError, Layer, LayerDict, ServiceDict
 
 from charm_config import CharmConfig, CharmConfigInvalidError
 from k8s import K8sPrivileged, K8sUSBVolume
@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 BASE_CONFIG_PATH = "/tmp/conf"
 CONFIG_FILE_NAME = "ue.conf"
 LOGGING_RELATION_NAME = "logging"
-RFSIM_RELATION_NAME = "fiveg_rfsim"
+RF_CONFIG_RELATION_NAME = "fiveg_rf_config"
 WORKLOAD_VERSION_FILE_NAME = "/etc/workload-version"
 
 
@@ -47,7 +47,7 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
         self._container_name = self._service_name = "ue"
         self._container = self.unit.get_container(self._container_name)
         self._logging = LogForwarder(charm=self, relation_name=LOGGING_RELATION_NAME)
-        self.rfsim_requirer = RFSIMRequires(self, RFSIM_RELATION_NAME)
+        self.rf_config_requires = RFConfigRequires(self, RF_CONFIG_RELATION_NAME)
         self._k8s_privileged = K8sPrivileged(
             namespace=self.model.name, statefulset_name=self.app.name
         )
@@ -66,10 +66,10 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
         self.framework.observe(self.on.update_status, self._configure)
         self.framework.observe(self.on.config_changed, self._configure)
         self.framework.observe(self.on.ue_pebble_ready, self._configure)
-        self.framework.observe(self.on[RFSIM_RELATION_NAME].relation_changed, self._configure)
+        self.framework.observe(self.on[RF_CONFIG_RELATION_NAME].relation_changed, self._configure)
         self.framework.observe(self.on.ping_action, self._on_ping_action)
 
-    def _on_collect_unit_status(self, event: CollectStatusEvent):
+    def _on_collect_unit_status(self, event: CollectStatusEvent):  # noqa: C901
         """Check the unit status and set to Unit when CollectStatusEvent is fired.
 
         Set the workload version if present in workload
@@ -98,51 +98,58 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
             event.add_status(WaitingStatus("Waiting for Pod IP address to be available"))
             logger.info("Waiting for Pod IP address to be available")
             return
+        if not self._container.exists(path=BASE_CONFIG_PATH):
+            event.add_status(WaitingStatus("Waiting for storage to be attached"))
+            logger.info("Waiting for storage to be attached")
+            return
         if not self._k8s_privileged.is_patched(container_name=self._container_name):
             event.add_status(WaitingStatus("Waiting for statefulset to be patched"))
             logger.info("Waiting for statefulset to be patched")
             return
-        if (
-            not self._relation_created(RFSIM_RELATION_NAME)
-            and not self._k8s_usb_volume.is_mounted()
-        ):
-            event.add_status(WaitingStatus("Waiting for USB device to be mounted"))
-            logger.info("Waiting for USB device to be mounted")
+        if not self._relation_created(RF_CONFIG_RELATION_NAME):
+            event.add_status(BlockedStatus("Waiting for fiveg_rf_config relation to be created"))
+            logger.info("Waiting for fiveg_rf_config relation to be created")
             return
-        if self._relation_created(RFSIM_RELATION_NAME) and (
-            not all(
-                [
-                    self.rfsim_requirer.rfsim_address,
-                    self.rfsim_requirer.sst,
-                    self.rfsim_requirer.sd,
-                    self.rfsim_requirer.band,
-                    self.rfsim_requirer.dl_freq,
-                    self.rfsim_requirer.numerology,
-                    self.rfsim_requirer.carrier_bandwidth,
-                    self.rfsim_requirer.start_subcarrier,
-                ]
-            )
-        ):
-            event.add_status(WaitingStatus("Waiting for RFSIM information"))
-            logger.info("Waiting for RFSIM information")
-            return
-        if self._relation_created(RFSIM_RELATION_NAME) and (
-            self.rfsim_requirer.provider_interface_version != LIBAPI
+        if self._relation_created(RF_CONFIG_RELATION_NAME) and (
+            self.rf_config_requires.provider_interface_version != LIBAPI
         ):
             event.add_status(
                 BlockedStatus(
-                    "Can't establish communication over the `fiveg_rfsim` "
+                    "Can't establish communication over the `fiveg_rf_config` "
                     "interface due to version mismatch!"
                 )
             )
             logger.error(
-                "Can't establish communication over the `fiveg_rfsim` interface "
+                "Can't establish communication over the `fiveg_rf_config` interface "
                 "due to version mismatch!"
             )
             return
-        if not self._container.exists(path=BASE_CONFIG_PATH):
-            event.add_status(WaitingStatus("Waiting for storage to be attached"))
-            logger.info("Waiting for storage to be attached")
+        if not self._charm_config.simulation_mode and not self._k8s_usb_volume.is_mounted():
+            event.add_status(WaitingStatus("Waiting for USB device to be mounted"))
+            logger.info("Waiting for USB device to be mounted")
+            return
+        if self._relation_created(RF_CONFIG_RELATION_NAME) and (
+            not all(
+                [
+                    self.rf_config_requires.sst,
+                    self.rf_config_requires.band,
+                    self.rf_config_requires.dl_freq,
+                    self.rf_config_requires.numerology,
+                    self.rf_config_requires.carrier_bandwidth,
+                    self.rf_config_requires.start_subcarrier,
+                ]
+            )
+        ):
+            event.add_status(WaitingStatus("Waiting for RF configuration"))
+            logger.info("Waiting for RF configuration")
+            return
+        if (
+            self._charm_config.simulation_mode
+            and self._relation_created(RF_CONFIG_RELATION_NAME)
+            and not self.rf_config_requires.rfsim_address
+        ):
+            event.add_status(WaitingStatus("Waiting for RF simulator IP address"))
+            logger.info("Waiting for RF simulator IP address")
             return
         self.unit.set_workload_version(self._get_workload_version())
         event.add_status(ActiveStatus())
@@ -160,17 +167,20 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
             return
         if not self._k8s_privileged.is_patched(container_name=self._container_name):
             self._k8s_privileged.patch_statefulset(container_name=self._container_name)
-        if (
-            not self._relation_created(RFSIM_RELATION_NAME)
-            and not self._k8s_usb_volume.is_mounted()
-        ):
+        if not self._charm_config.simulation_mode and not self._k8s_usb_volume.is_mounted():
             self._k8s_usb_volume.mount()
-        if self._relation_created(RFSIM_RELATION_NAME):
-            self.rfsim_requirer.set_rfsim_information()
-        if self._relation_created(RFSIM_RELATION_NAME) and self._k8s_usb_volume.is_mounted():
+        if self._charm_config.simulation_mode and self._k8s_usb_volume.is_mounted():
             self._k8s_usb_volume.unmount()
-        if self._relation_created(relation_name=RFSIM_RELATION_NAME) and (
-            not self.rfsim_requirer.rfsim_address or not self.rfsim_requirer.sst
+        if self._relation_created(RF_CONFIG_RELATION_NAME):
+            self.rf_config_requires.set_rf_config_information()
+        if self._relation_created(relation_name=RF_CONFIG_RELATION_NAME) and (
+            not self.rf_config_requires.sst
+        ):
+            return
+        if (
+            self._charm_config.simulation_mode
+            and self._relation_created(RF_CONFIG_RELATION_NAME)
+            and not self.rf_config_requires.rfsim_address
         ):
             return
         if not self._container.exists(path=BASE_CONFIG_PATH):
@@ -188,18 +198,6 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
             # According to TS 23.003, no SD is defined as 0xffffff
             return "0xffffff"
         return hex(value)
-
-    def _get_sst(self) -> Optional[int]:
-        if self._relation_created(RFSIM_RELATION_NAME):
-            return self.rfsim_requirer.sst
-        else:
-            return self._charm_config.sst
-
-    def _get_sd(self) -> Optional[int]:
-        if self._relation_created(RFSIM_RELATION_NAME):
-            return self.rfsim_requirer.sd
-        else:
-            return self._charm_config.sd
 
     def _on_ping_action(self, event: ActionEvent) -> None:
         """Run network traffic simulation.
@@ -228,9 +226,7 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
             event.fail(message=f"Failed to execute simulation: {str(e.stdout)}")
 
     def _generate_ue_config(self) -> str:
-        sst = self._get_sst()
-        sd = self._get_sd()
-        if not sst:
+        if not self.rf_config_requires.sst:
             logger.error("SST is not available")
             return ""
         return _render_config_file(
@@ -238,8 +234,8 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
             key=self._charm_config.key,
             opc=self._charm_config.opc,
             dnn=self._charm_config.dnn,
-            sst=sst,
-            sd=self.get_sd_as_hex(sd),
+            sst=self.rf_config_requires.sst,
+            sd=self.get_sd_as_hex(self.rf_config_requires.sd),
         ).rstrip()
 
     def _is_ue_config_up_to_date(self, content: str) -> bool:
@@ -302,18 +298,14 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
         Returns:
             Layer: Pebble Layer
         """
-        return Layer(
-            {
-                "services": {
-                    self._service_name: {
-                        "override": "replace",
-                        "startup": "enabled",
-                        "command": self._get_ue_startup_command(),
-                        "environment": self._ue_environment_variables,
-                    },
-                },
-            }
+        ue_service = ServiceDict(
+            override="replace",
+            startup="enabled",
+            command=self._get_ue_startup_command(),
+            environment=self._ue_environment_variables,
         )
+        ue_service_layer_dict = LayerDict(services={self._service_name: ue_service})
+        return Layer(ue_service_layer_dict)
 
     def _get_ue_startup_command(self) -> str:
         ue_startup_command = [
@@ -321,15 +313,15 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
             "-O",
             f"{BASE_CONFIG_PATH}/{CONFIG_FILE_NAME}",
             "-r",
-            str(self.rfsim_requirer.carrier_bandwidth),
+            str(self.rf_config_requires.carrier_bandwidth),
             "--numerology",
-            str(self.rfsim_requirer.numerology),
+            str(self.rf_config_requires.numerology),
             "-C",
-            str(self.rfsim_requirer.dl_freq),
+            str(self.rf_config_requires.dl_freq),
             "--ssb",
-            str(self.rfsim_requirer.start_subcarrier),
+            str(self.rf_config_requires.start_subcarrier),
             "--band",
-            str(self.rfsim_requirer.band),
+            str(self.rf_config_requires.band),
             "--log_config.global_log_options",
             "level,nocolor,time",
         ]
@@ -337,12 +329,12 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
         ue_rfsim_params = [
             "--rfsim",
             "--rfsimulator.serveraddr",
-            str(self.rfsim_requirer.rfsim_address),
+            str(self.rf_config_requires.rfsim_address),
         ]
         ue_enable_tree_quarter_sampling_params = ["-E"]
         ue_enable_mimo_params = ["--ue-nb-ant-tx 2", "--ue-nb-ant-rx 2"]
 
-        if self._relation_created(relation_name=RFSIM_RELATION_NAME):
+        if self._charm_config.simulation_mode:
             ue_startup_command += ue_rfsim_params
         if self._charm_config.use_three_quarter_sampling:
             ue_startup_command += ue_enable_tree_quarter_sampling_params

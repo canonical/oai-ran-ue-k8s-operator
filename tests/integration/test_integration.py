@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # Copyright 2024 Canonical Ltd.
 # See LICENSE file for licensing details.
+
 import json
 from pathlib import Path
 
@@ -8,6 +9,8 @@ import pytest
 import requests
 import yaml
 from pytest_operator.plugin import OpsTest
+
+from src.charm import RF_CONFIG_RELATION_NAME
 
 METADATA = yaml.safe_load(Path("./charmcraft.yaml").read_text())
 NMS_MOCK_CHARM_PATH = "./tests/integration/nms_mock_charm.py"
@@ -30,14 +33,14 @@ TIMEOUT = 5 * 60
 
 
 @pytest.mark.abort_on_fail
-async def test_deploy_charm_and_wait_for_active_status(
+async def test_deploy_charm_and_wait_for_blocked_status(
     ops_test: OpsTest,
     deploy_charm_under_test,
 ):
     assert ops_test.model
     await ops_test.model.wait_for_idle(
         apps=[APP_NAME],
-        status="active",
+        status="blocked",
         timeout=TIMEOUT,
     )
 
@@ -47,7 +50,9 @@ async def test_relate_and_wait_for_active_status(
     ops_test: OpsTest, deploy_charm_under_test, deploy_dependencies
 ):
     assert ops_test.model
-    await ops_test.model.integrate(relation1=f"{APP_NAME}:fiveg_rfsim", relation2=DU_CHARM_NAME)
+    await ops_test.model.integrate(
+        relation1=f"{APP_NAME}:{RF_CONFIG_RELATION_NAME}", relation2=DU_CHARM_NAME
+    )
     await ops_test.model.integrate(
         relation1=f"{APP_NAME}:logging", relation2=GRAFANA_AGENT_CHARM_NAME
     )
@@ -60,12 +65,12 @@ async def test_relate_and_wait_for_active_status(
 
 
 @pytest.mark.abort_on_fail
-async def test_remove_du_and_wait_for_active_status(
+async def test_remove_du_and_wait_for_blocked_status(
     ops_test: OpsTest, deploy_charm_under_test, deploy_dependencies
 ):
     assert ops_test.model
     await ops_test.model.remove_application(DU_CHARM_NAME, block_until_done=True)
-    await ops_test.model.wait_for_idle(apps=[APP_NAME], status="active", timeout=TIMEOUT)
+    await ops_test.model.wait_for_idle(apps=[APP_NAME], status="blocked", timeout=TIMEOUT)
 
 
 @pytest.mark.abort_on_fail

@@ -1,11 +1,11 @@
-# Copyright 2024 Canonical Ltd.
+# Copyright 2025 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-"""Library for the `fiveg_rfsim` relation.
+"""Library for the `fiveg_rf_config` relation.
 
-This library contains the Requires and Provides classes for handling the `fiveg_rfsim` interface.
+This library contains the Requires and Provides classes for handling the `fiveg-rf-config` interface.
 
-The purpose of this library is to relate two charms to pass the network configuration data required to start the RF simulation.
+The purpose of this library is to pass the Radio Frequency (RF) configuration data required to establish communication between two charms implementing the `fiveg-rf-config` interface over a real or simulated RF medium.
 In particular the RF SIM address, Network Slice Type (SST), Slice Differentiator (SD), RF band, downlink frequency, carrier bandwidth, numerology and the number of the first usable subcarrier will be passed through the interface.
 In the Telco world this will typically be charms implementing the DU (Distributed Unit) and the UE (User equipment).
 
@@ -13,7 +13,7 @@ In the Telco world this will typically be charms implementing the DU (Distribute
 From a charm directory, fetch the library using `charmcraft`:
 
 ```shell
-charmcraft fetch-lib charms.oai_ran_du_k8s.v0.fiveg_rfsim
+charmcraft fetch-lib charms.oai_ran_du_k8s.v0.fiveg_rf_config
 ```
 
 Add the following libraries to the charm's `requirements.txt` file:
@@ -30,10 +30,10 @@ Example:
 from ops import main
 from ops.charm import CharmBase, RelationChangedEvent
 
-from charms.oai_ran_du_k8s.v0.fiveg_rfsim import RFSIMProvides
+from charms.oai_ran_du_k8s.v0.fiveg_rf_config import RFConfigProvides
 
 
-class DummyFivegRFSIMProviderCharm(CharmBase):
+class DummyFivegRFConfigProviderCharm(CharmBase):
 
     RFSIM_ADDRESS = "192.168.70.130"
     SST = 1
@@ -46,14 +46,14 @@ class DummyFivegRFSIMProviderCharm(CharmBase):
 
     def __init__(self, *args):
         super().__init__(*args)
-        self.rfsim_provider = RFSIMProvides(self, "fiveg_rfsim")
+        self.rf_config_provider = RFConfigProvides(self, "fiveg_rf_config")
         self.framework.observe(
-            self.on.fiveg_rfsim_relation_changed, self._on_fiveg_rfsim_relation_changed
+            self.on.fiveg_rf_config_relation_changed, self._on_fiveg_rf_config_relation_changed
         )
 
-    def _on_fiveg_rfsim_relation_changed(self, event: RelationChangedEvent):
+    def _on_fiveg_rf_config_relation_changed(self, event: RelationChangedEvent):
         if self.unit.is_leader():
-            self.rfsim_provider.set_rfsim_information(
+            self.rf_config_provider.set_rf_config_information(
                 version=0,
                 rfsim_address=self.RFSIM_ADDRESS,
                 sst=self.SST,
@@ -67,11 +67,11 @@ class DummyFivegRFSIMProviderCharm(CharmBase):
 
 
 if __name__ == "__main__":
-    main(DummyFivegRFSIMProviderCharm)
+    main(DummyFivegRFConfigProviderCharm)
 ```
 
 ### Requirer charm
-The requirer charm is the one requiring the RF simulator information.
+The requirer charm is the one requiring the RF configuration information.
 Typically, this will be the UE charm.
 
 Example:
@@ -80,21 +80,21 @@ Example:
 from ops import main
 from ops.charm import CharmBase, RelationChangedEvent
 
-from charms.oai_ran_du_k8s.v0.fiveg_rfsim import RFSIMRequires
+from charms.oai_ran_du_k8s.v0.fiveg_rf_config import RFConfigRequires
 
 logger = logging.getLogger(__name__)
 
 
-class DummyFivegRFSIMRequires(CharmBase):
+class DummyFivegRFConfigRequires(CharmBase):
 
     def __init__(self, *args):
         super().__init__(*args)
-        self.rfsim_requirer = RFSIMRequires(self, "fiveg_rfsim")
+        self.rf_config_requirer = RFConfigRequires(self, "fiveg_rf_config")
         self.framework.observe(
-            self.on.fiveg_rfsim_relation_changed, self._on_fiveg_rfsim_relation_changed
+            self.on.fiveg_rf_config_relation_changed, self._on_fiveg_rf_config_relation_changed
         )
 
-    def _on_fiveg_rfsim_relation_changed(self, event: RelationChangedEvent):
+    def _on_fiveg_rf_config_relation_changed(self, event: RelationChangedEvent):
         provider_rfsim_address = event.rfsim_address
         provider_sst = event.sst
         provider_sd = event.sd
@@ -107,7 +107,7 @@ class DummyFivegRFSIMRequires(CharmBase):
 
 
 if __name__ == "__main__":
-    main(DummyFivegRFSIMRequires)
+    main(DummyFivegRFConfigRequires)
 ```
 
 """
@@ -124,19 +124,19 @@ from pydantic import BaseModel, Field, IPvAnyAddress, ValidationError
 
 
 # The unique Charmhub library identifier, never change it
-LIBID = "e5d421b1edce4e8b8b3632d55869117c"
+LIBID = "86b25cb056d849a1aeab703c98e81820"
 
 # Increment this major API version when introducing breaking changes
 LIBAPI = 0
 
 # Increment this PATCH version before using `charmcraft publish-lib` or reset
 # to 0 if you are raising the major API version
-LIBPATCH = 2
+LIBPATCH = 1
 
 
 logger = logging.getLogger(__name__)
 
-"""Schemas definition for the provider and requirer sides of the `fiveg_rfsim` interface.
+"""Schemas definition for the provider and requirer sides of the `fiveg_rf_config` interface.
 It exposes two interface_tester.schema_base.DataBagSchema subclasses called:
 - ProviderSchema
 - RequirerSchema
@@ -163,15 +163,16 @@ Examples:
 
 
 class ProviderAppData(BaseModel):
-    """Provider app data for fiveg_rfsim."""
+    """Provider app data for fiveg_rf_config."""
 
     version: int = Field(
         description="Interface version",
         examples=[0, 1, 2, 3],
         ge=0,
     )
-    rfsim_address: IPvAnyAddress = Field(
+    rfsim_address: Optional[IPvAnyAddress] = Field(
         description="RF simulator service address which is equal to DU pod ip",
+        default=None,
         examples=["192.168.70.130"],
     )
     sst: int = Field(
@@ -222,13 +223,13 @@ class ProviderAppData(BaseModel):
 
 
 class ProviderSchema(DataBagSchema):
-    """Provider schema for the fiveg_rfsim interface."""
+    """Provider schema for the fiveg_rf_config relation."""
 
     app_data: ProviderAppData
 
 
 class RequirerAppData(BaseModel):
-    """Requirer app data for fiveg_rfsim."""
+    """Requirer app data for fiveg_rf_config."""
 
     version: int = Field(
         description="Interface version",
@@ -238,7 +239,7 @@ class RequirerAppData(BaseModel):
 
 
 class RequirerSchema(DataBagSchema):
-    """Requirer schema for the fiveg_rfsim interface."""
+    """Requirer schema for the fiveg_rf_config relation."""
 
     app_data: RequirerAppData
 
@@ -277,16 +278,16 @@ def requirer_data_is_valid(data: Dict[str, Any]) -> bool:
         return False
 
 
-class FivegRFSIMError(Exception):
-    """Custom error class for the `fiveg_rfsim` library."""
+class FivegRFConfigError(Exception):
+    """Custom error class for the `fiveg_rf_config` library."""
 
     def __init__(self, message: str):
         self.message = message
         super().__init__(self.message)
 
 
-class RFSIMProvides(Object):
-    """Class to be instantiated by the charm providing relation using the `fiveg_rfsim` interface."""
+class RFConfigProvides(Object):
+    """Class to be instantiated by the charm providing the `fiveg_rf_config` relation."""
 
     def __init__(self, charm: CharmBase, relation_name: str):
         """Init."""
@@ -294,9 +295,9 @@ class RFSIMProvides(Object):
         self.relation_name = relation_name
         self.charm = charm
 
-    def set_rfsim_information(
+    def set_rf_config_information(
         self,
-        rfsim_address: str,
+        rfsim_address: Optional[str],
         sst: int,
         sd: Optional[int],
         band: int,
@@ -305,10 +306,10 @@ class RFSIMProvides(Object):
         numerology: int,
         start_subcarrier: int,
     ) -> None:
-        """Push the information about the RFSIM interface in the application relation data.
+        """Push the information about the RF configuration in the application relation data.
 
         Args:
-            rfsim_address (str): rfsim service address which is equal to DU pod ip.
+            rfsim_address (Optional[str]): rfsim service address which is equal to DU Pod IP
             sst (int): Slice/Service Type
             sd (Optional[int]): Slice Differentiator
             band (int): Valid 5G band
@@ -318,10 +319,10 @@ class RFSIMProvides(Object):
             start_subcarrier (int): First usable subcarrier
         """
         if not self.charm.unit.is_leader():
-            raise FivegRFSIMError("Unit must be leader to set application relation data.")
+            raise FivegRFConfigError("Unit must be leader to set application relation data.")
         relations = self.model.relations[self.relation_name]
         if not relations:
-            raise FivegRFSIMError(f"Relation {self.relation_name} not created yet.")
+            raise FivegRFConfigError(f"Relation {self.relation_name} not created yet.")
         if not provider_data_is_valid(
             {
                 "version": str(LIBAPI),
@@ -335,11 +336,10 @@ class RFSIMProvides(Object):
                 "start_subcarrier": start_subcarrier,
             }
         ):
-            raise FivegRFSIMError("Invalid relation data")
+            raise FivegRFConfigError("Invalid relation data")
         for relation in relations:
             data = {
                 "version": str(LIBAPI),
-                "rfsim_address": rfsim_address,
                 "sst": str(sst),
                 "band": str(band),
                 "dl_freq": str(dl_freq),
@@ -347,6 +347,8 @@ class RFSIMProvides(Object):
                 "numerology": str(numerology),
                 "start_subcarrier": str(start_subcarrier),
             }
+            if rfsim_address is not None:
+                data["rfsim_address"] = str(rfsim_address)
             if sd is not None:
                 data["sd"] = str(sd)
             relation.data[self.charm.app].update(data)
@@ -356,8 +358,8 @@ class RFSIMProvides(Object):
         return LIBAPI
 
 
-class RFSIMRequires(Object):
-    """Class to be instantiated by the charm requiring relation using the `fiveg_rfsim` interface."""
+class RFConfigRequires(Object):
+    """Class to be instantiated by the charm requiring the `fiveg_rf_config` relation."""
 
     def __init__(self, charm: CharmBase, relation_name: str):
         """Init."""
@@ -370,7 +372,7 @@ class RFSIMRequires(Object):
         """Return interface version used by the provider.
 
         Returns:
-            Optional[int]: The `fiveg_rfsim` interface version used by the provider.
+            Optional[int]: The `fiveg_rf_config` interface version used by the provider.
         """
         return self._get_provider_interface_version()
 
@@ -381,7 +383,7 @@ class RFSIMRequires(Object):
         Returns:
             Optional[IPvAnyAddress]: rfsim address which is equal to DU pod ip.
         """
-        if remote_app_relation_data := self.get_provider_rfsim_information():
+        if remote_app_relation_data := self.get_provider_rf_config_information():
             return remote_app_relation_data.rfsim_address
         return None
 
@@ -392,7 +394,7 @@ class RFSIMRequires(Object):
         Returns:
             Optional[int]: sst (Network Slice Service Type)
         """
-        if remote_app_relation_data := self.get_provider_rfsim_information():
+        if remote_app_relation_data := self.get_provider_rf_config_information():
             return remote_app_relation_data.sst
         return None
 
@@ -403,7 +405,7 @@ class RFSIMRequires(Object):
         Returns:
            Optional[int] : sd (Network Slice Differentiator)
         """
-        if remote_app_relation_data := self.get_provider_rfsim_information():
+        if remote_app_relation_data := self.get_provider_rf_config_information():
             return remote_app_relation_data.sd
         return None
 
@@ -414,7 +416,7 @@ class RFSIMRequires(Object):
         Returns:
            Optional[int] : band (RF Band number)
         """
-        if remote_app_relation_data := self.get_provider_rfsim_information():
+        if remote_app_relation_data := self.get_provider_rf_config_information():
             return remote_app_relation_data.band
         return None
 
@@ -425,7 +427,7 @@ class RFSIMRequires(Object):
         Returns:
            Optional[int] : dl_freq (Downlink frequency)
         """
-        if remote_app_relation_data := self.get_provider_rfsim_information():
+        if remote_app_relation_data := self.get_provider_rf_config_information():
             return remote_app_relation_data.dl_freq
         return None
 
@@ -436,7 +438,7 @@ class RFSIMRequires(Object):
         Returns:
            Optional[int] : carrier_bandwidth (carrier bandwidth)
         """
-        if remote_app_relation_data := self.get_provider_rfsim_information():
+        if remote_app_relation_data := self.get_provider_rf_config_information():
             return remote_app_relation_data.carrier_bandwidth
         return None
 
@@ -447,7 +449,7 @@ class RFSIMRequires(Object):
         Returns:
            Optional[int] : numerology
         """
-        if remote_app_relation_data := self.get_provider_rfsim_information():
+        if remote_app_relation_data := self.get_provider_rf_config_information():
             return remote_app_relation_data.numerology
         return None
 
@@ -458,7 +460,7 @@ class RFSIMRequires(Object):
         Returns:
            Optional[int] : start_subcarrier
         """
-        if remote_app_relation_data := self.get_provider_rfsim_information():
+        if remote_app_relation_data := self.get_provider_rf_config_information():
             return remote_app_relation_data.start_subcarrier
         return None
 
@@ -466,7 +468,7 @@ class RFSIMRequires(Object):
         """Get provider interface version.
 
         Returns:
-            Optional[int]: The `fiveg_rfsim` interface version used by the provider.
+            Optional[int]: The `fiveg_rf_config` interface version used by the provider.
         """
         relation = self.model.get_relation(self.relation_name)
         if not relation:
@@ -478,10 +480,10 @@ class RFSIMRequires(Object):
         try:
             return int(dict(relation.data[relation.app]).get("version", ""))
         except ValueError:
-            logger.error("Invalid or missing `fiveg_rfsim` provider interface version.")
+            logger.error("Invalid or missing `fiveg_rf_config` provider interface version.")
             return None
 
-    def get_provider_rfsim_information(
+    def get_provider_rf_config_information(
         self, relation: Optional[Relation] = None
     ) -> Optional[ProviderAppData]:
         """Get relation data for the remote application.
@@ -515,11 +517,8 @@ class RFSIMRequires(Object):
             remote_app_relation_data["start_subcarrier"] = int(
                 remote_app_relation_data.get("start_subcarrier", "")
             )
-        except ValueError as err:
-            logger.error("Invalid relation data: %s: %s", remote_app_relation_data, str(err))
-            return None
-
-        try:
+            if rfsim_address := remote_app_relation_data.get("rfsim_address"):
+                remote_app_relation_data["rfsim_address"] = str(rfsim_address)
             if sd := remote_app_relation_data.get("sd"):
                 remote_app_relation_data["sd"] = int(sd)
         except ValueError as err:
@@ -533,15 +532,15 @@ class RFSIMRequires(Object):
             return None
         return provider_app_data
 
-    def set_rfsim_information(self) -> None:
-        """Push the information about the `fiveg_rfsim` interface version used by the Requirer."""
+    def set_rf_config_information(self) -> None:
+        """Push the information about the `fiveg_rf_config` interface version used by the Requirer."""
         if not self.charm.unit.is_leader():
-            raise FivegRFSIMError("Unit must be leader to set application relation data.")
+            raise FivegRFConfigError("Unit must be leader to set application relation data.")
         relations = self.model.relations[self.relation_name]
         if not relations:
-            raise FivegRFSIMError(f"Relation {self.relation_name} not created yet.")
+            raise FivegRFConfigError(f"Relation {self.relation_name} not created yet.")
         if not requirer_data_is_valid({"version": str(LIBAPI)}):
-            raise FivegRFSIMError("Invalid relation data")
+            raise FivegRFConfigError("Invalid relation data")
         for relation in relations:
             data = {"version": str(LIBAPI)}
             relation.data[self.charm.app].update(data)

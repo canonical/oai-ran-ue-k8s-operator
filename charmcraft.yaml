@@ -34,8 +34,8 @@ resources:
     upstream-source: ghcr.io/canonical/oai-ran-ue:2.2.0
 
 requires:
-  fiveg_rfsim:
-    interface: fiveg_rfsim
+  fiveg_rf_config:
+    interface: fiveg_rf_config
   logging:
     interface: loki_push_api
 
@@ -57,12 +57,12 @@ config:
       type: string
       default: "internet"
       description: Data Network Name
-    sst:
-      type: int
-      description: Slice/Service Type. This value is ignored when the `fiveg_rfsim` is used as the SST will be taken from the relation data.
-    sd:
-      type: int
-      description: Slice/Service Definition in decimal representation. This value will be transformed into into its hexadecimal representation (1056816 -> `0x102030`). This value is ignored when the `fiveg_rfsim` is used as the SD will be taken from the relation data.
+    simulation-mode:
+      type: boolean
+      default: false
+      description: |
+        Run UE in simulation mode.
+        In the simulation mode, the UE will use emulated over-the-air interface towards the DU/gNB. Simulation mode has been designed to work with the OAI RAN DU/gNB without a need for a license to use an RF band.
     use-three-quarter-sampling:
       type: boolean
       default: false

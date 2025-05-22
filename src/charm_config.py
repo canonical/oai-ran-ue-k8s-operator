@@ -6,7 +6,6 @@
 
 import dataclasses
 import logging
-from typing import Optional
 
 import ops
 from pydantic import (  # pylint: disable=no-name-in-module,import-error
@@ -56,20 +55,7 @@ class UEConfig(BaseModel):  # pylint: disable=too-few-public-methods
         min_length=32,
     )
     dnn: StrictStr = Field(default="internet", min_length=1)
-    sst: int = Field(
-        description="Slice/Service Type",
-        examples=[1, 2, 3, 4],
-        ge=0,
-        le=255,
-        default=1,
-    )
-    sd: Optional[int] = Field(
-        description="Slice Differentiator",
-        default=None,
-        examples=[1],
-        ge=0,
-        le=16777215,
-    )
+    simulation_mode: bool = False
     use_three_quarter_sampling: bool = False
     use_mimo: bool = False
 
@@ -83,8 +69,7 @@ class CharmConfig:
         key: Secret Key for USIM
         opc: Secret Key for operator
         dnn: Data Network Name
-        sst: Slice/Service Type
-        sd: Slice Differentiator
+        simulation_mode: Run UE in simulation mode
         use_three_quarter_sampling: Enable three-quarter sampling rate
         use_mimo: Enable support for 2x2 MIMO
     """
@@ -93,8 +78,7 @@ class CharmConfig:
     key: StrictStr
     opc: StrictStr
     dnn: StrictStr
-    sst: int
-    sd: Optional[int]
+    simulation_mode: bool
     use_three_quarter_sampling: bool
     use_mimo: bool
 
@@ -108,8 +92,7 @@ class CharmConfig:
         self.key = ue_config.key
         self.opc = ue_config.opc
         self.dnn = ue_config.dnn
-        self.sst = ue_config.sst
-        self.sd = ue_config.sd
+        self.simulation_mode = ue_config.simulation_mode
         self.use_three_quarter_sampling = ue_config.use_three_quarter_sampling
         self.use_mimo = ue_config.use_mimo
 
