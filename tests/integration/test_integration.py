@@ -65,12 +65,12 @@ async def test_relate_and_wait_for_active_status(
 
 
 @pytest.mark.abort_on_fail
-async def test_remove_du_and_wait_for_active_status(
+async def test_remove_du_and_wait_for_blocked_status(
     ops_test: OpsTest, deploy_charm_under_test, deploy_dependencies
 ):
     assert ops_test.model
     await ops_test.model.remove_application(DU_CHARM_NAME, block_until_done=True)
-    await ops_test.model.wait_for_idle(apps=[APP_NAME], status="active", timeout=TIMEOUT)
+    await ops_test.model.wait_for_idle(apps=[APP_NAME], status="blocked", timeout=TIMEOUT)
 
 
 @pytest.mark.abort_on_fail
