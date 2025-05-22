@@ -36,14 +36,6 @@ RF_CONFIG_RELATION_NAME = "fiveg_rf_config"
 WORKLOAD_VERSION_FILE_NAME = "/etc/workload-version"
 
 
-class UEConfigGenerationError(Exception):
-    """UEConfigGenerationError."""
-
-    def __init__(self, message: str):
-        self.message = message
-        super().__init__(self.message)
-
-
 class OaiRanUeK8SOperatorCharm(CharmBase):
     """Main class to describe Juju event handling for the OAI RAN UE operator for K8s."""
 
@@ -312,8 +304,8 @@ class OaiRanUeK8SOperatorCharm(CharmBase):
             command=self._get_ue_startup_command(),
             environment=self._ue_environment_variables,
         )
-        ue_service_layer_dcit = LayerDict(services={self._service_name: ue_service})
-        return Layer(ue_service_layer_dcit)
+        ue_service_layer_dict = LayerDict(services={self._service_name: ue_service})
+        return Layer(ue_service_layer_dict)
 
     def _get_ue_startup_command(self) -> str:
         ue_startup_command = [
