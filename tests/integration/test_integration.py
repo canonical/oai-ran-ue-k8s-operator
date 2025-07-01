@@ -20,6 +20,7 @@ AMF_CHARM_CHANNEL = "1.6/edge"
 DB_CHARM_NAME = "mongodb-k8s"
 DB_CHARM_CHANNEL = "6/stable"
 GRAFANA_AGENT_CHARM_NAME = "grafana-agent-k8s"
+GRAFANA_AGENT_CHARM_CHANNEL = "1/stable"
 NRF_CHARM_NAME = "sdcore-nrf-k8s"
 NRF_CHARM_CHANNEL = "1.6/edge"
 CU_CHARM_NAME = "oai-ran-cu-k8s"
@@ -134,7 +135,7 @@ async def _deploy_grafana_agent(ops_test: OpsTest):
     await ops_test.model.deploy(
         GRAFANA_AGENT_CHARM_NAME,
         application_name=GRAFANA_AGENT_CHARM_NAME,
-        channel="stable",
+        channel=GRAFANA_AGENT_CHARM_CHANNEL,
     )
 
 
