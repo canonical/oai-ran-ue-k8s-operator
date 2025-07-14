@@ -31,7 +31,7 @@ resources:
   ue-image:
     type: oci-image
     description: Container image for the OAI RAN User Equipment (UE).
-    upstream-source: ghcr.io/canonical/oai-ran-ue:2.2.0
+    upstream-source: ghcr.io/canonical/oai-ran-ue:2.3.0
 
 requires:
   fiveg_rf_config:
