@@ -1,6 +1,10 @@
 # OAI RAN UE (User Equipment) Operator (k8s)
 [![CharmHub Badge](https://charmhub.io/oai-ran-ue-k8s/badge.svg)](https://charmhub.io/oai-ran-ue-k8s)
 
+> **:warning: Deprecation Notice!**
+>
+> This project is deprecated and will not receive further updates. Please refer to the upstream [OAI](https://openairinterface.org/) project to continue using OAI.
+
 A Charmed Operator for the OAI RAN User Equipment (UE) for K8s.
 
 ## Pre-requisites
@@ -19,7 +23,7 @@ sudo microk8s enable multus
 Deploy the charm.
 
 ```bash
-juju deploy oai-ran-cu-k8s --trust --channel=2.2/edge 
+juju deploy oai-ran-cu-k8s --trust --channel=2.2/edge
 juju deploy oai-ran-du-k8s --trust --channel=2.2/edge --config simulation-mode=true
 juju deploy oai-ran-ue-k8s --trust --channel=2.2/edge
 juju integrate oai-ran-du-k8s:fiveg_f1 oai-ran-cu-k8s:fiveg_f1
